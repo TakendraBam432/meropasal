@@ -36,6 +36,10 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
+        // Check password requirements before signup
+        if (password.length < 16) {
+          throw new Error("Password must be at least 16 characters long");
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -47,10 +51,14 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
+      let errorMessage = error.message;
+      if (error.message.includes("invalid_credentials")) {
+        errorMessage = "Invalid email or password";
+      }
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -115,6 +123,11 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {!isLogin && (
+              <p className="text-sm text-gray-500">
+                Password must be at least 16 characters long
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-4">
