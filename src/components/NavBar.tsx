@@ -34,7 +34,7 @@ const NavBar = () => {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost" size="icon" className="nav-link">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="nav-link">
                   <User className="h-5 w-5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="nav-link relative">
