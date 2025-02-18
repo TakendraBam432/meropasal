@@ -4,25 +4,25 @@ import ProductCard from "@/components/ProductCard";
 
 const FEATURED_PRODUCTS = [
   {
-    id: 1,
+    id: "1",
     title: "Premium Wireless Headphones",
     price: 299.99,
     image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
   },
   {
-    id: 2,
+    id: "2",
     title: "Smart Watch Series 5",
     price: 399.99,
     image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
   },
   {
-    id: 3,
+    id: "3",
     title: "Professional Camera Kit",
     price: 1299.99,
     image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500&q=80",
   },
   {
-    id: 4,
+    id: "4",
     title: "Designer Sunglasses",
     price: 199.99,
     image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&q=80",
@@ -47,6 +47,7 @@ const Index = () => {
             {FEATURED_PRODUCTS.map((product) => (
               <ProductCard
                 key={product.id}
+                id={product.id}
                 title={product.title}
                 price={product.price}
                 image={product.image}
