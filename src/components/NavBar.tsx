@@ -2,11 +2,15 @@
 import { ShoppingCart, Search, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 
 const NavBar = () => {
   const { user, signOut } = useAuth();
+  const { state } = useCart();
   const navigate = useNavigate();
+
+  const cartItemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white bg-opacity-80 backdrop-blur-lg border-b border-gray-200">
@@ -37,11 +41,18 @@ const NavBar = () => {
                 <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="nav-link">
                   <User className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="nav-link relative">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="nav-link relative"
+                  onClick={() => navigate("/cart")}
+                >
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 text-xs flex items-center justify-center bg-primary text-primary-foreground rounded-full">
-                    0
-                  </span>
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 text-xs flex items-center justify-center bg-primary text-primary-foreground rounded-full">
+                      {cartItemCount}
+                    </span>
+                  )}
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => signOut()}>
                   <LogOut className="h-5 w-5" />

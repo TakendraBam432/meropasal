@@ -9,6 +9,8 @@ import { CartProvider } from "@/contexts/CartContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
@@ -23,15 +25,24 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
               <Route 
-                path="/" 
+                path="/cart" 
                 element={
                   <ProtectedRoute>
-                    <Index />
+                    <Cart />
                   </ProtectedRoute>
                 } 
               />
-              <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/checkout" 
+                element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
