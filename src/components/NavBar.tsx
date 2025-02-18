@@ -1,5 +1,5 @@
 
-import { ShoppingCart, Search, User, LogOut } from "lucide-react";
+import { ShoppingCart, Search, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -38,6 +38,9 @@ const NavBar = () => {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
+                <Button variant="ghost" size="icon" onClick={() => navigate("/orders")} className="nav-link">
+                  <Package className="h-5 w-5" />
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="nav-link">
                   <User className="h-5 w-5" />
                 </Button>
