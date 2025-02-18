@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -22,7 +23,18 @@ const Auth = () => {
       }
     };
     checkUser();
-  }, [navigate]);
+
+    // Handle email confirmation
+    const error = searchParams.get("error");
+    const error_description = searchParams.get("error_description");
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: error_description || "An error occurred during authentication",
+      });
+    }
+  }, [navigate, searchParams, toast]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,15 +48,19 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
-        // Check password requirements before signup
-        if (password.length < 16) {
-          throw new Error("Password must be at least 16 characters long");
-        }
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
+
+        if (data.user?.identities?.length === 0) {
+          throw new Error("An account with this email already exists");
+        }
+
         toast({
           title: "Registration successful!",
           description: "Please check your email for verification.",
@@ -125,7 +141,7 @@ const Auth = () => {
             </div>
             {!isLogin && (
               <p className="text-sm text-gray-500">
-                Password must be at least 16 characters long
+                Password must be at least 3 characters long
               </p>
             )}
           </div>
