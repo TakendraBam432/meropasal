@@ -55,31 +55,37 @@ export type Database = {
         Row: {
           buyer_id: string | null
           created_at: string | null
+          estimated_delivery: string | null
           id: string
           payment_intent_id: string | null
           shipping_address: Json | null
-          status: string | null
+          status: Database["public"]["Enums"]["order_status"] | null
           total_amount: number
+          tracking_number: string | null
           updated_at: string | null
         }
         Insert: {
           buyer_id?: string | null
           created_at?: string | null
+          estimated_delivery?: string | null
           id?: string
           payment_intent_id?: string | null
           shipping_address?: Json | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
           total_amount?: number
+          tracking_number?: string | null
           updated_at?: string | null
         }
         Update: {
           buyer_id?: string | null
           created_at?: string | null
+          estimated_delivery?: string | null
           id?: string
           payment_intent_id?: string | null
           shipping_address?: Json | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
           total_amount?: number
+          tracking_number?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -148,6 +154,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_admin: boolean | null
           role: string | null
           updated_at: string | null
         }
@@ -156,6 +163,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           role?: string | null
           updated_at?: string | null
         }
@@ -164,6 +172,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           role?: string | null
           updated_at?: string | null
         }
@@ -177,7 +186,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      order_status:
+        | "pending"
+        | "processing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
