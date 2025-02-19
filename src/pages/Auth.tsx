@@ -5,12 +5,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
+  const [showOTP, setShowOTP] = useState(false);
+  const [otp, setOTP] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -61,9 +70,11 @@ const Auth = () => {
           throw new Error("An account with this email already exists");
         }
 
+        // Show OTP input instead of redirecting
+        setShowOTP(true);
         toast({
-          title: "Registration successful!",
-          description: "Please check your email for verification.",
+          title: "Verification code sent!",
+          description: "Please check your email for the verification code.",
         });
       }
     } catch (error: any) {
@@ -75,6 +86,35 @@ const Auth = () => {
         variant: "destructive",
         title: "Error",
         description: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Email verified successfully!",
+        description: "You can now sign in to your account.",
+      });
+      setShowOTP(false);
+      setIsLogin(true);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification Error",
+        description: error.message,
       });
     } finally {
       setLoading(false);
@@ -111,6 +151,43 @@ const Auth = () => {
     }
   };
 
+  if (showOTP) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Verify your email</CardTitle>
+            <CardDescription>
+              Enter the verification code sent to {email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Enter verification code"
+                value={otp}
+                onChange={(e) => setOTP(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Verifying..." : "Verify Email"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowOTP(false)}
+              >
+                Back to Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -141,7 +218,7 @@ const Auth = () => {
             </div>
             {!isLogin && (
               <p className="text-sm text-gray-500">
-                Password must be at least 3 characters long
+                Password must be at least 6 characters long
               </p>
             )}
           </div>
