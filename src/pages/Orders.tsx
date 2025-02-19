@@ -64,7 +64,12 @@ const OrderHistory = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Order[];
+      
+      // Transform the data to match the Order interface
+      return (data as any[]).map(order => ({
+        ...order,
+        shipping_address: order.shipping_address as Order["shipping_address"]
+      })) as Order[];
     },
     enabled: !!user,
   });

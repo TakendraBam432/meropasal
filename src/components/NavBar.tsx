@@ -1,16 +1,27 @@
 
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, User, LogOut, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate } from "react-router-dom";
 
 const NavBar = () => {
   const { user, signOut } = useAuth();
   const { state } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
   const cartItemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white bg-opacity-80 backdrop-blur-lg border-b border-gray-200">
@@ -23,16 +34,18 @@ const NavBar = () => {
           </div>
           
           <div className="hidden md:block flex-1 max-w-md mx-8">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <Input
                 type="search"
                 placeholder="Search products..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white bg-opacity-90 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full"
               />
-            </div>
+            </form>
           </div>
 
           <div className="flex items-center space-x-4">
