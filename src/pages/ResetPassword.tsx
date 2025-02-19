@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,23 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if we have a session and hash parameter
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Invalid reset link",
+          description: "Please request a new password reset link.",
+        });
+        navigate("/auth");
+      }
+    };
+
+    checkSession();
+  }, [navigate, toast]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
