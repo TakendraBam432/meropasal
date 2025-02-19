@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +19,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOTP] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -27,13 +27,12 @@ const Auth = () => {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session?.user?.email_confirmed_at) {
         navigate("/");
       }
     };
     checkUser();
 
-    // Handle email confirmation
     const error = searchParams.get("error");
     const error_description = searchParams.get("error_description");
     if (error) {
@@ -45,24 +44,39 @@ const Auth = () => {
     }
   }, [navigate, searchParams, toast]);
 
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [resendTimer]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        if (!data.user?.email_confirmed_at) {
+          setShowOTP(true);
+          toast({
+            title: "Email verification required",
+            description: "Please verify your email to continue.",
+          });
+          return;
+        }
         navigate("/");
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth`,
-          },
         });
         if (error) throw error;
 
@@ -70,8 +84,8 @@ const Auth = () => {
           throw new Error("An account with this email already exists");
         }
 
-        // Show OTP input instead of redirecting
         setShowOTP(true);
+        setResendTimer(60);
         toast({
           title: "Verification code sent!",
           description: "Please check your email for the verification code.",
@@ -110,10 +124,40 @@ const Auth = () => {
       });
       setShowOTP(false);
       setIsLogin(true);
+      await supabase.auth.refreshSession();
+      navigate("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Verification Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) throw error;
+      
+      setResendTimer(60);
+      toast({
+        title: "Verification code resent!",
+        description: "Please check your email for the new verification code.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
         description: error.message,
       });
     } finally {
@@ -172,6 +216,17 @@ const Auth = () => {
               />
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Verifying..." : "Verify Email"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResendOTP}
+                disabled={resendTimer > 0 || loading}
+              >
+                {resendTimer > 0
+                  ? `Resend code in ${resendTimer}s`
+                  : "Resend verification code"}
               </Button>
               <Button
                 type="button"
