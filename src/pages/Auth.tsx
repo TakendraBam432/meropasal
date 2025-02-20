@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,9 @@ const Auth = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOTP] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -52,6 +56,129 @@ const Auth = () => {
       return () => clearInterval(interval);
     }
   }, [resendTimer]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter your email address",
+      });
+      return;
+    }
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+      if (error) throw error;
+      
+      setShowOTP(true);
+      setResendTimer(60);
+      toast({
+        title: "Verification code sent",
+        description: "Please check your email for the verification code",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email'
+      });
+      
+      if (error) throw error;
+      
+      setShowNewPassword(true);
+      toast({
+        title: "Code verified",
+        description: "Please enter your new password",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+
+      toast({
+        title: "Password updated successfully",
+        description: "You can now sign in with your new password",
+      });
+      setIsForgotPassword(false);
+      setShowNewPassword(false);
+      setShowOTP(false);
+      setIsLogin(true);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+      if (error) throw error;
+      
+      setResendTimer(60);
+      toast({
+        title: "New code sent!",
+        description: "Please check your email for the new verification code",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,133 +233,111 @@ const Auth = () => {
     }
   };
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email'
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Email verified successfully!",
-        description: "You can now sign in to your account.",
-      });
-      setShowOTP(false);
-      setIsLogin(true);
-      await supabase.auth.refreshSession();
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Verification Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
+  if (isForgotPassword) {
+    if (showNewPassword) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Set new password</CardTitle>
+              <CardDescription>
+                Enter your new password
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <Input
+                  type="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Updating..." : "Update Password"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      );
     }
-  };
 
-  const handleResendOTP = async () => {
-    if (resendTimer > 0) return;
-    
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
-      
-      if (error) throw error;
-      
-      setResendTimer(60);
-      toast({
-        title: "Verification code resent!",
-        description: "Please check your email for the new verification code.",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
+    if (showOTP) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Verify your email</CardTitle>
+              <CardDescription>
+                Enter the verification code sent to {email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <Input
+                  type="text"
+                  placeholder="Enter verification code"
+                  value={otp}
+                  onChange={(e) => setOTP(e.target.value)}
+                  required
+                />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Verifying..." : "Verify Code"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendOTP}
+                  disabled={resendTimer > 0 || loading}
+                >
+                  {resendTimer > 0
+                    ? `Resend code in ${resendTimer}s`
+                    : "Resend verification code"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setIsForgotPassword(false)}
+                >
+                  Back to Sign In
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      );
     }
-  };
 
-  const handlePasswordReset = async () => {
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter your email address",
-      });
-      return;
-    }
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-      if (error) throw error;
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the reset link",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showOTP) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Verify your email</CardTitle>
+            <CardTitle>Reset your password</CardTitle>
             <CardDescription>
-              Enter the verification code sent to {email}
+              Enter your email to receive a verification code
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleVerifyOTP} className="space-y-4">
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <Input
-                type="text"
-                placeholder="Enter verification code"
-                value={otp}
-                onChange={(e) => setOTP(e.target.value)}
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify Email"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleResendOTP}
-                disabled={resendTimer > 0 || loading}
-              >
-                {resendTimer > 0
-                  ? `Resend code in ${resendTimer}s`
-                  : "Resend verification code"}
+                {loading ? "Sending..." : "Send verification code"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 className="w-full"
-                onClick={() => setShowOTP(false)}
+                onClick={() => setIsForgotPassword(false)}
               >
                 Back to Sign In
               </Button>
@@ -302,7 +407,11 @@ const Auth = () => {
             {isLogin && (
               <button
                 type="button"
-                onClick={handlePasswordReset}
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setShowOTP(false);
+                  setShowNewPassword(false);
+                }}
                 className="text-sm text-primary hover:text-primary/90"
               >
                 Forgot your password?
