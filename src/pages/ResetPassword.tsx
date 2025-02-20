@@ -65,7 +65,7 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'recovery'
+        type: 'email' // Changed from 'recovery' to 'email'
       });
       
       if (error) throw error;
