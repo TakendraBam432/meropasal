@@ -36,9 +36,7 @@ const ResetPassword = () => {
     }
     try {
       setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
 
       setShowOTP(true);
@@ -65,7 +63,7 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'email' // Changed from 'recovery' to 'email'
+        type: 'recovery'
       });
       
       if (error) throw error;
@@ -100,6 +98,7 @@ const ResetPassword = () => {
         description: "Please check your email for the new verification code",
       });
 
+      // Start countdown timer
       const interval = setInterval(() => {
         setResendTimer((prev) => {
           if (prev <= 1) {
