@@ -36,7 +36,13 @@ const ResetPassword = () => {
     }
     try {
       setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      // Using signInWithOtp instead of resetPasswordForEmail for OTP-based flow
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
       if (error) throw error;
 
       setShowOTP(true);
@@ -63,7 +69,7 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'recovery'
+        type: 'email'
       });
       
       if (error) throw error;
@@ -89,7 +95,12 @@ const ResetPassword = () => {
     
     try {
       setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
       if (error) throw error;
       
       setResendTimer(60);
