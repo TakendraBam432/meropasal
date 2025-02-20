@@ -10,18 +10,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     flowType: 'pkce',
     detectSessionInUrl: true,
-    autoRefreshToken: true,
+    persistSession: false,
     storage: {
       getItem: (key) => {
         try {
-          return Promise.resolve(sessionStorage.getItem(key));
+          return Promise.resolve(window.sessionStorage.getItem(key));
         } catch {
           return Promise.resolve(null);
         }
       },
       setItem: (key, value) => {
         try {
-          sessionStorage.setItem(key, value);
+          window.sessionStorage.setItem(key, value);
           return Promise.resolve();
         } catch {
           return Promise.resolve();
@@ -29,7 +29,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       },
       removeItem: (key) => {
         try {
-          sessionStorage.removeItem(key);
+          window.sessionStorage.removeItem(key);
           return Promise.resolve();
         } catch {
           return Promise.resolve();
