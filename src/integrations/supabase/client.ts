@@ -8,30 +8,31 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    flowType: 'pkce',
-    detectSessionInUrl: true,
-    persistSession: false,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
     storage: {
       getItem: (key) => {
         try {
-          return Promise.resolve(window.sessionStorage.getItem(key));
-        } catch {
+          const value = window.localStorage.getItem(key);
+          return Promise.resolve(value);
+        } catch (e) {
           return Promise.resolve(null);
         }
       },
       setItem: (key, value) => {
         try {
-          window.sessionStorage.setItem(key, value);
+          window.localStorage.setItem(key, value);
           return Promise.resolve();
-        } catch {
+        } catch (e) {
           return Promise.resolve();
         }
       },
       removeItem: (key) => {
         try {
-          window.sessionStorage.removeItem(key);
+          window.localStorage.removeItem(key);
           return Promise.resolve();
-        } catch {
+        } catch (e) {
           return Promise.resolve();
         }
       }
