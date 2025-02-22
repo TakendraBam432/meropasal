@@ -15,8 +15,16 @@ import Orders from "./pages/Orders";
 import Search from "./pages/Search";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/admin/Dashboard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // Cache data for 1 minute
+      cacheTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <BrowserRouter>
@@ -55,6 +63,16 @@ const App = () => (
                 } 
               />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Admin Routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
