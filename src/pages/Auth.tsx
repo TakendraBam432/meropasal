@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,20 +68,18 @@ const Auth = () => {
     }
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
+      
       if (error) throw error;
       
-      setShowOTP(true);
-      setResendTimer(60);
       toast({
-        title: "Verification code sent",
-        description: "Please check your email for the verification code",
+        title: "Password reset email sent",
+        description: "Please check your email for the password reset link",
       });
+      setIsLogin(true);
+      setIsForgotPassword(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -234,91 +231,13 @@ const Auth = () => {
   };
 
   if (isForgotPassword) {
-    if (showNewPassword) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Set new password</CardTitle>
-              <CardDescription>
-                Enter your new password
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdatePassword} className="space-y-4">
-                <Input
-                  type="password"
-                  placeholder="New password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Updating..." : "Update Password"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
-    if (showOTP) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Verify your email</CardTitle>
-              <CardDescription>
-                Enter the verification code sent to {email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerifyOTP} className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Enter verification code"
-                  value={otp}
-                  onChange={(e) => setOTP(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Verifying..." : "Verify Code"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleResendOTP}
-                  disabled={resendTimer > 0 || loading}
-                >
-                  {resendTimer > 0
-                    ? `Resend code in ${resendTimer}s`
-                    : "Resend verification code"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setIsForgotPassword(false)}
-                >
-                  Back to Sign In
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Reset your password</CardTitle>
             <CardDescription>
-              Enter your email to receive a verification code
+              Enter your email to receive a password reset link
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -331,7 +250,7 @@ const Auth = () => {
                 required
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send verification code"}
+                {loading ? "Sending..." : "Send reset link"}
               </Button>
               <Button
                 type="button"
