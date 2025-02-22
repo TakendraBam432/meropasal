@@ -48,7 +48,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Handle specific auth events
       if (event === 'SIGNED_OUT') {
-        localStorage.removeItem('sb-' + supabase.projectId + '-auth-token');
+        // Clear local storage auth data
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
     });
 
