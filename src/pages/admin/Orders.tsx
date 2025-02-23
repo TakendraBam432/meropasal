@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminDashboard/AdminLayout";
 import {
@@ -21,11 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { OrderStatus } from "@/types/orders";
 
 interface Order {
   id: string;
   created_at: string;
-  status: string;
+  status: OrderStatus;
   total_amount: number;
   buyer_id: string;
 }
