@@ -25,6 +25,7 @@ interface Product {
   category: string;
   stock: number;
   status: string;
+  average_rating?: number;
 }
 
 const CATEGORIES = ["Electronics", "Clothing", "Books", "Home", "Sports"];
@@ -36,6 +37,7 @@ const SearchPage = () => {
     category: searchParams.get("category") || "",
     minPrice: Number(searchParams.get("minPrice")) || 0,
     maxPrice: Number(searchParams.get("maxPrice")) || MAX_PRICE,
+    minRating: Number(searchParams.get("minRating")) || 0,
     inStock: searchParams.get("inStock") === "true",
   });
 
@@ -46,7 +48,12 @@ const SearchPage = () => {
     queryFn: async () => {
       let queryBuilder = supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          reviews(
+            rating
+          )
+        `)
         .eq("status", "active");
 
       if (query) {
@@ -67,7 +74,14 @@ const SearchPage = () => {
 
       const { data, error } = await queryBuilder;
       if (error) throw error;
-      return data as Product[];
+
+      // Calculate average rating and filter by minimum rating
+      return (data as any[]).map(product => ({
+        ...product,
+        average_rating: product.reviews?.length
+          ? product.reviews.reduce((acc: number, review: any) => acc + review.rating, 0) / product.reviews.length
+          : 0
+      })).filter(product => product.average_rating >= filters.minRating);
     },
   });
 
@@ -91,6 +105,7 @@ const SearchPage = () => {
       category: "",
       minPrice: 0,
       maxPrice: MAX_PRICE,
+      minRating: 0,
       inStock: false,
     });
     setSearchParams({ q: query });
@@ -154,6 +169,24 @@ const SearchPage = () => {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium">Minimum Rating</label>
+              <div className="pt-6">
+                <Slider
+                  min={0}
+                  max={5}
+                  step={0.5}
+                  value={[filters.minRating]}
+                  onValueChange={([value]) =>
+                    updateFilters({ minRating: value })
+                  }
+                />
+                <div className="flex justify-between mt-2 text-sm text-gray-600">
+                  <span>{filters.minRating} Stars</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -183,6 +216,8 @@ const SearchPage = () => {
                         ? `Max $${value}`
                         : key === "inStock"
                         ? "In Stock"
+                        : key === "minRating"
+                        ? `${value}+ Stars`
                         : `${key}: ${value}`}
                     </Badge>
                   );
@@ -213,6 +248,7 @@ const SearchPage = () => {
                     title={product.title}
                     price={product.price}
                     image={product.image_url}
+                    rating={product.average_rating}
                   />
                 ))}
               </div>
