@@ -27,56 +27,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Persist the session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
-      }
-      setLoading(false);
-    });
+    // Get initial session and set up subscription
+    const initializeAuth = async () => {
+      try {
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          await checkAdminStatus(session.user.id);
+        }
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAdminStatus(session.user.id);
-      } else {
-        setIsAdmin(false);
-      }
-      setLoading(false);
+        // Set up session change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            setUser(session?.user ?? null);
+            if (session?.user) {
+              await checkAdminStatus(session.user.id);
+            } else {
+              setIsAdmin(false);
+            }
 
-      // Handle specific auth events
-      if (event === 'SIGNED_OUT') {
-        // Clear local storage auth data
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('sb-')) {
-            localStorage.removeItem(key);
+            if (event === 'SIGNED_OUT') {
+              // Clear any local storage data
+              localStorage.removeItem('supabase.auth.token');
+              navigate('/auth');
+            }
           }
-        });
-      }
-    });
+        );
 
-    return () => {
-      subscription.unsubscribe();
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
+
+    initializeAuth();
+  }, [navigate]);
 
   const checkAdminStatus = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', userId)
-      .single();
-    
-    if (!error && data) {
-      setIsAdmin(!!data.is_admin);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(!!data?.is_admin);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
     }
   };
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setIsAdmin(false);
       navigate("/auth");
       toast({
         title: "Signed out successfully",

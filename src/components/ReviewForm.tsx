@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ReviewFormProps {
   productId: string;
@@ -17,9 +18,19 @@ export const ReviewForm = ({ productId, onSuccess }: ReviewFormProps) => {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to submit a review",
+      });
+      return;
+    }
+
     if (rating === 0) {
       toast({
         variant: "destructive",
@@ -33,6 +44,7 @@ export const ReviewForm = ({ productId, onSuccess }: ReviewFormProps) => {
     try {
       const { error } = await supabase.from("reviews").insert({
         product_id: productId,
+        user_id: user.id,
         rating,
         comment: comment.trim() || null,
       });

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminDashboard/AdminLayout";
 import {
@@ -48,7 +49,14 @@ const Orders = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Ensure the data conforms to the Order type
+      const typedOrders: Order[] = (data || []).map(order => ({
+        ...order,
+        status: order.status as OrderStatus
+      }));
+      
+      setOrders(typedOrders);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -60,7 +68,7 @@ const Orders = () => {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
         .from("orders")
