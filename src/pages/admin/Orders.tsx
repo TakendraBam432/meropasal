@@ -119,7 +119,7 @@ const Orders = () => {
     order.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case "delivered":
         return "bg-green-100 text-green-800";
@@ -127,6 +127,8 @@ const Orders = () => {
         return "bg-blue-100 text-blue-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "shipped":
+        return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -180,7 +182,7 @@ const Orders = () => {
                     <TableCell>
                       <Select
                         value={order.status}
-                        onValueChange={(value) => handleStatusChange(order.id, value)}
+                        onValueChange={(value: OrderStatus) => handleStatusChange(order.id, value)}
                       >
                         <SelectTrigger className={`w-32 ${getStatusColor(order.status)}`}>
                           <SelectValue>{order.status}</SelectValue>
