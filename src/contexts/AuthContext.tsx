@@ -27,31 +27,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session and set up subscription
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
-          setUser(session.user);
-          await checkAdminStatus(session.user.id);
+        if (mounted) {
+          if (session?.user) {
+            setUser(session.user);
+            await checkAdminStatus(session.user.id);
+          }
         }
 
         // Set up session change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-              await checkAdminStatus(session.user.id);
-            } else {
-              setIsAdmin(false);
-            }
+            if (mounted) {
+              setUser(session?.user ?? null);
+              if (session?.user) {
+                await checkAdminStatus(session.user.id);
+              } else {
+                setIsAdmin(false);
+              }
 
-            if (event === 'SIGNED_OUT') {
-              // Clear any local storage data
-              localStorage.removeItem('supabase.auth.token');
-              navigate('/auth');
+              if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('supabase.auth.token');
+                navigate('/auth');
+              }
             }
           }
         );
@@ -62,11 +66,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   const checkAdminStatus = async (userId: string) => {
