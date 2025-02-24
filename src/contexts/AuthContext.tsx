@@ -19,9 +19,23 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
 });
 
+// Try to get the cached session from localStorage
+const getCachedSession = () => {
+  try {
+    const cachedSession = localStorage.getItem('supabase.auth.token');
+    return cachedSession ? JSON.parse(cachedSession) : null;
+  } catch (error) {
+    console.error('Error reading cached session:', error);
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    const cachedSession = getCachedSession();
+    return cachedSession?.currentSession?.user ?? null;
+  });
+  const [loading, setLoading] = useState(!getCachedSession());
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -106,6 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await supabase.auth.signOut();
       setUser(null);
       setIsAdmin(false);
+      localStorage.removeItem('supabase.auth.token');
       navigate("/auth");
       toast({
         title: "Signed out successfully",
