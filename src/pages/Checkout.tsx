@@ -72,14 +72,14 @@ const Checkout = () => {
         return;
       }
 
-      // Create order in Supabase
+      // Create order in Supabase with correct status type
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           buyer_id: user.id,
           total_amount: state.total,
           shipping_address: shippingAddress,
-          status: riskAssessment.risk === 'medium' ? 'review' : 'pending',
+          status: riskAssessment.risk === 'medium' ? 'pending' : 'pending', // Always use 'pending' as initial status
           risk_assessment: riskAssessment,
         })
         .select()

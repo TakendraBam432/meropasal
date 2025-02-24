@@ -6,28 +6,22 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { sanitizeInput } from "@/utils/security";
+import { UserAddress } from "@/types/supabase";
 
 interface UserProfile {
   full_name: string | null;
   avatar_url: string | null;
 }
 
-interface Address {
-  address_line1: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  is_default: boolean;
-}
+type NewAddress = Omit<UserAddress, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [newAddress, setNewAddress] = useState<Address>({
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [newAddress, setNewAddress] = useState<NewAddress>({
     address_line1: "",
     city: "",
     state: "",
@@ -45,11 +39,13 @@ const Dashboard = () => {
   }, [user]);
 
   const fetchUserProfile = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("full_name, avatar_url")
-        .eq("id", user?.id)
+        .eq("id", user.id)
         .single();
 
       if (error) throw error;
@@ -69,14 +65,14 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data: addressData, error } = await supabase
         .from("user_addresses")
         .select("*")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false });
 
       if (error) throw error;
-      setAddresses(data || []);
+      setAddresses(addressData || []);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -137,10 +133,12 @@ const Dashboard = () => {
 
     try {
       // First, set all addresses to non-default
-      await supabase
+      const { error: updateError } = await supabase
         .from("user_addresses")
         .update({ is_default: false })
         .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
 
       // Then set the selected address as default
       const { error } = await supabase
@@ -195,8 +193,8 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {/* Existing Addresses */}
-              {addresses.map((address, index) => (
-                <div key={index} className="p-4 border rounded-lg">
+              {addresses.map((address) => (
+                <div key={address.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start">
                     <div>
                       <p>{address.address_line1}</p>
