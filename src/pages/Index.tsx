@@ -2,7 +2,7 @@
 import { useState } from "react";
 import NavBar from "@/components/NavBar";
 import ProductCard from "@/components/ProductCard";
-import { Search } from "lucide-react";
+import { Search, Camera } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -50,18 +50,27 @@ const Index = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Search Bar */}
-      <div className="sticky top-0 z-50 bg-white p-4 shadow-sm">
-        <div className="relative max-w-lg mx-auto">
-          <Input
-            type="search"
-            placeholder="iphone 15 pro max"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-4 pr-20 h-12 rounded-full border-2 border-orange-500"
-          />
+      {/* Search Bar - Updated for mobile */}
+      <div className="sticky top-0 z-50 bg-white px-4 py-3 shadow-sm md:py-4">
+        <div className="relative max-w-lg mx-auto flex items-center gap-2">
+          <div className="flex-1 relative">
+            <Input
+              type="search"
+              placeholder="iphone 15 pro max"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-4 pr-12 h-11 rounded-full border-2 border-orange-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            <Button 
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500"
+            >
+              <Camera className="h-5 w-5" />
+            </Button>
+          </div>
           <Button 
-            className="absolute right-0 top-0 h-12 px-6 bg-orange-500 hover:bg-orange-600 rounded-r-full"
+            className="h-11 px-6 bg-orange-500 hover:bg-orange-600 rounded-full"
           >
             Search
           </Button>
@@ -70,21 +79,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4">
-        {/* Banner */}
-        <div className="relative mb-6 rounded-xl overflow-hidden">
-          <img 
-            src="/public/lovable-uploads/38ef8083-9f13-4a7b-98f1-e9ea87780cfc.png" 
-            alt="Payday Sale"
-            className="w-full h-auto"
-          />
-          <Button
-            className="absolute bottom-4 left-4 bg-green-600 hover:bg-green-700"
-          >
-            Shop Now
-          </Button>
-        </div>
-
-        {/* Categories */}
+        {/* Categories - Updated for mobile */}
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-8">
           {categories.map((category) => (
             <a 
@@ -92,46 +87,58 @@ const Index = () => {
               href={category.link}
               className="flex flex-col items-center text-center p-2"
             >
-              <div className="text-2xl mb-1">{category.icon}</div>
-              <span className="text-sm">{category.name}</span>
+              <div className="w-12 h-12 mb-2 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+                <span className="text-2xl">{category.icon}</span>
+              </div>
+              <span className="text-xs font-medium">{category.name}</span>
             </a>
           ))}
         </div>
 
-        {/* Vouchers */}
+        {/* Vouchers - Updated for mobile */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Voucher & Discount</h2>
-            <a href="/vouchers" className="text-sm text-gray-600">
-              More vouchers →
+            <a href="/vouchers" className="text-sm text-gray-600 flex items-center">
+              More vouchers
+              <span className="ml-1">›</span>
             </a>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {vouchers.map((voucher) => (
-              <Card key={voucher.id} className="p-4 text-center bg-pink-50">
-                <div className="text-2xl font-bold text-pink-500">{voucher.discount}OFF</div>
-                <div className="text-sm text-pink-600">{voucher.code}</div>
+              <Card key={voucher.id} className="p-4 text-center bg-gradient-to-r from-pink-50 to-red-50 border-0">
+                <div className="text-2xl font-bold text-red-500">{voucher.discount}OFF</div>
+                <div className="text-sm text-red-600">{voucher.code}</div>
               </Card>
             ))}
           </div>
         </div>
 
-        {/* Flash Sale */}
+        {/* Flash Sale - Updated for mobile */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Flash Sale</h2>
-            <a href="/flash-sale" className="text-sm text-gray-600">
-              SHOP MORE →
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">Flash Sale</h2>
+              <span className="text-red-500 text-sm">⚡️</span>
+            </div>
+            <a href="/flash-sale" className="text-sm text-gray-600 flex items-center">
+              SHOP MORE
+              <span className="ml-1">›</span>
             </a>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {flashSaleItems.map((item) => (
               <Card key={item.id} className="overflow-hidden">
-                <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
+                <div className="relative">
+                  <img src={item.image} alt={item.name} className="w-full aspect-square object-cover" />
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    -{item.discount}%
+                  </div>
+                </div>
                 <div className="p-3">
-                  <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium mb-1 line-clamp-2">{item.name}</h3>
+                  <div className="flex items-center justify-between">
                     <div className="text-lg font-semibold">Rs.{item.price}</div>
-                    <div className="text-red-500">-{item.discount}%</div>
                   </div>
                 </div>
               </Card>
@@ -140,23 +147,23 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center p-3">
+      {/* Bottom Navigation - Updated for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center p-2">
         <a href="/" className="flex flex-col items-center text-orange-500">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">For You</span>
+          <span className="text-2xl">🏠</span>
+          <span className="text-[10px] mt-1">For You</span>
         </a>
-        <a href="/messages" className="flex flex-col items-center text-gray-600">
-          <span className="text-xl">💬</span>
-          <span className="text-xs">Messages</span>
+        <a href="/messages" className="flex flex-col items-center text-gray-500">
+          <span className="text-2xl">💬</span>
+          <span className="text-[10px] mt-1">Messages</span>
         </a>
-        <a href="/cart" className="flex flex-col items-center text-gray-600">
-          <span className="text-xl">🛒</span>
-          <span className="text-xs">Cart</span>
+        <a href="/cart" className="flex flex-col items-center text-gray-500">
+          <span className="text-2xl">🛒</span>
+          <span className="text-[10px] mt-1">Cart</span>
         </a>
-        <a href="/account" className="flex flex-col items-center text-gray-600">
-          <span className="text-xl">👤</span>
-          <span className="text-xs">Account</span>
+        <a href="/account" className="flex flex-col items-center text-gray-500">
+          <span className="text-2xl">👤</span>
+          <span className="text-[10px] mt-1">Account</span>
         </a>
       </div>
     </div>
