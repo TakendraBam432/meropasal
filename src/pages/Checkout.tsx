@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkRateLimit, detectFraudRisk, sanitizeInput } from "@/utils/security";
 
 const Checkout = () => {
   const { state, clearCart } = useCart();
@@ -28,7 +27,7 @@ const Checkout = () => {
     const { name, value } = e.target;
     setShippingAddress((prev) => ({
       ...prev,
-      [name]: sanitizeInput(value),
+      [name]: value,
     }));
   };
 
@@ -44,43 +43,16 @@ const Checkout = () => {
       return;
     }
 
-    // Check rate limiting
-    if (!checkRateLimit(user.id)) {
-      toast({
-        variant: "destructive",
-        title: "Too many requests",
-        description: "Please wait a moment before trying again.",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // Fraud risk assessment
-      const riskAssessment = await detectFraudRisk({
-        buyer_id: user.id,
-        total_amount: state.total,
-        shipping_address: shippingAddress,
-      });
-
-      if (riskAssessment.risk === 'high') {
-        toast({
-          variant: "destructive",
-          title: "Order requires review",
-          description: "Our team will contact you to verify this order.",
-        });
-        return;
-      }
-
-      // Create order in Supabase with correct status type
+      // Create order in Supabase
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           buyer_id: user.id,
           total_amount: state.total,
           shipping_address: shippingAddress,
-          status: riskAssessment.risk === 'medium' ? 'pending' : 'pending', // Always use 'pending' as initial status
-          risk_assessment: riskAssessment,
+          status: "pending",
         })
         .select()
         .single();
@@ -105,9 +77,7 @@ const Checkout = () => {
       clearCart();
       toast({
         title: "Order placed successfully",
-        description: riskAssessment.risk === 'medium' 
-          ? "Your order is under review and will be processed soon."
-          : "Thank you for your purchase!",
+        description: "Thank you for your purchase!",
       });
       navigate(`/orders/${order.id}`);
     } catch (error: any) {

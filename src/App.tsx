@@ -15,19 +15,8 @@ import Orders from "./pages/Orders";
 import Search from "./pages/Search";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
-import AdminProducts from "./pages/admin/Products";
-import AdminOrders from "./pages/admin/Orders";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000, // Cache data for 1 minute
-      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <BrowserRouter>
@@ -66,40 +55,6 @@ const App = () => (
                 } 
               />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
-              
-              {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <ProtectedRoute>
-                    <AdminUsers />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/products"
-                element={
-                  <ProtectedRoute>
-                    <AdminProducts />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders"
-                element={
-                  <ProtectedRoute>
-                    <AdminOrders />
-                  </ProtectedRoute>
-                }
-              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>

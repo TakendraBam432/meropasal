@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
 const NavBar = () => {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut } = useAuth();
   const { state } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -49,11 +49,7 @@ const NavBar = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {loading ? (
-              <div className="animate-pulse flex space-x-4">
-                <div className="h-10 w-10 bg-gray-200 rounded"></div>
-              </div>
-            ) : user ? (
+            {user ? (
               <>
                 <Button variant="ghost" size="icon" onClick={() => navigate("/orders")} className="nav-link">
                   <Package className="h-5 w-5" />

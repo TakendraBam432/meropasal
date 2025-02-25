@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -22,9 +20,6 @@ const Auth = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOTP] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -58,132 +53,30 @@ const Auth = () => {
     }
   }, [resendTimer]);
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter your email address",
-      });
-      return;
-    }
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the password reset link",
-      });
-      setIsLogin(true);
-      setIsForgotPassword(false);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp || otp.length !== 6) {
-      toast({
-        variant: "destructive",
-        title: "Invalid code",
-        description: "Please enter a valid 6-digit verification code",
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'signup'
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Email verified",
-        description: "You can now sign in to your account",
-      });
-      setShowOTP(false);
-      setIsLogin(true);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Verification Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    if (resendTimer > 0) return;
-    
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            email: email,
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      setResendTimer(60);
-      toast({
-        title: "New code sent!",
-        description: "Please check your email for the new verification code",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        if (!data.user?.email_confirmed_at) {
+          setShowOTP(true);
+          toast({
+            title: "Email verification required",
+            description: "Please verify your email to continue.",
+          });
+          return;
+        }
         navigate("/");
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              email: email,
-            }
-          }
         });
         if (error) throw error;
 
@@ -213,9 +106,98 @@ const Auth = () => {
     }
   };
 
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Email verified successfully!",
+        description: "You can now sign in to your account.",
+      });
+      setShowOTP(false);
+      setIsLogin(true);
+      await supabase.auth.refreshSession();
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) throw error;
+      
+      setResendTimer(60);
+      toast({
+        title: "Verification code resent!",
+        description: "Please check your email for the new verification code.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter your email address",
+      });
+      return;
+    }
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email for the reset link",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (showOTP) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Verify your email</CardTitle>
@@ -225,72 +207,32 @@ const Auth = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <div className="flex justify-center">
-                <InputOTP
-                  value={otp}
-                  onChange={(value) => setOTP(value)}
-                  maxLength={6}
-                  render={({ slots }) => (
-                    <InputOTPGroup className="gap-2">
-                      {slots.map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} />
-                      ))}
-                    </InputOTPGroup>
-                  )}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify Email"}
-              </Button>
-              <div className="text-center">
-                <p className="text-sm text-gray-500 mb-2">
-                  Didn't receive the code?
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleResendOTP}
-                  disabled={resendTimer > 0}
-                >
-                  {resendTimer > 0
-                    ? `Resend in ${resendTimer}s`
-                    : "Resend Code"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isForgotPassword) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Reset your password</CardTitle>
-            <CardDescription>
-              Enter your email to receive a password reset link
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleForgotPassword} className="space-y-4">
               <Input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter verification code"
+                value={otp}
+                onChange={(e) => setOTP(e.target.value)}
                 required
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send reset link"}
+                {loading ? "Verifying..." : "Verify Email"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResendOTP}
+                disabled={resendTimer > 0 || loading}
+              >
+                {resendTimer > 0
+                  ? `Resend code in ${resendTimer}s`
+                  : "Resend verification code"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 className="w-full"
-                onClick={() => setIsForgotPassword(false)}
+                onClick={() => setShowOTP(false)}
               >
                 Back to Sign In
               </Button>
@@ -302,76 +244,72 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </h2>
         </div>
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div className="space-y-4">
-                <Input
-                  type="email"
-                  required
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <Input
-                  type="password"
-                  required
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                {!isLogin && (
-                  <p className="text-sm text-gray-500">
-                    Password must be at least 6 characters long
-                  </p>
-                )}
-              </div>
+        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+          <div className="rounded-md shadow-sm space-y-4">
+            <div>
+              <Input
+                type="email"
+                required
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                required
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {!isLogin && (
+              <p className="text-sm text-gray-500">
+                Password must be at least 6 characters long
+              </p>
+            )}
+          </div>
 
-              <div className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading
-                    ? "Loading..."
-                    : isLogin
-                    ? "Sign in"
-                    : "Create account"}
-                </Button>
-                
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setIsLogin(!isLogin)}
-                >
-                  {isLogin
-                    ? "Don't have an account? Sign up"
-                    : "Already have an account? Sign in"}
-                </Button>
-                
-                {isLogin && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="w-full"
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      setShowOTP(false);
-                      setShowNewPassword(false);
-                    }}
-                  >
-                    Forgot your password?
-                  </Button>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          <div className="flex flex-col gap-4">
+            <Button type="submit" disabled={loading}>
+              {loading
+                ? "Loading..."
+                : isLogin
+                ? "Sign in"
+                : "Create account"}
+            </Button>
+            
+            <div className="text-sm text-center">
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:text-primary/90"
+              >
+                {isLogin
+                  ? "Don't have an account? Sign up"
+                  : "Already have an account? Sign in"}
+              </button>
+            </div>
+            
+            {isLogin && (
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                className="text-sm text-primary hover:text-primary/90"
+              >
+                Forgot your password?
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );

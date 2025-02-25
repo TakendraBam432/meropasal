@@ -1,59 +1,48 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { sanitizeInput } from "@/utils/security";
-import { UserAddress } from "@/types/supabase";
 
-interface UserProfile {
-  full_name: string | null;
-  avatar_url: string | null;
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Product {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  status: string;
+  image_url: string | null;
+  category: string | null;
+  stock: number;
 }
 
-type NewAddress = Omit<UserAddress, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
-
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [newAddress, setNewAddress] = useState<NewAddress>({
-    address_line1: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "",
-    is_default: false,
-  });
-  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchUserProfile();
-      fetchAddresses();
-    }
-  }, [user]);
+    fetchProducts();
+  }, []);
 
-  const fetchUserProfile = async () => {
-    if (!user) return;
-    
+  const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("id", user.id)
-        .single();
+        .from("products")
+        .select("*")
+        .eq("seller_id", user?.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProfile(data);
+      setProducts(data || []);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error fetching profile",
+        title: "Error",
         description: error.message,
       });
     } finally {
@@ -61,229 +50,131 @@ const Dashboard = () => {
     }
   };
 
-  const fetchAddresses = async () => {
-    if (!user) return;
-
-    try {
-      const { data: addressData, error } = await supabase
-        .from("user_addresses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("is_default", { ascending: false });
-
-      if (error) throw error;
-      setAddresses(addressData || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error fetching addresses",
-        description: error.message,
-      });
-    }
-  };
-
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewAddress(prev => ({
-      ...prev,
-      [name]: sanitizeInput(value),
-    }));
-  };
-
-  const handleAddAddress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
+  const handleDeleteProduct = async (id: string) => {
     try {
       const { error } = await supabase
-        .from("user_addresses")
-        .insert({
-          user_id: user.id,
-          ...newAddress,
-        });
+        .from("products")
+        .delete()
+        .eq("id", id);
 
       if (error) throw error;
 
+      setProducts(products.filter((product) => product.id !== id));
       toast({
-        title: "Address added successfully",
-        description: "Your new address has been saved.",
+        title: "Product deleted",
+        description: "The product has been successfully deleted.",
       });
-
-      setNewAddress({
-        address_line1: "",
-        city: "",
-        state: "",
-        postal_code: "",
-        country: "",
-        is_default: false,
-      });
-      setIsAddingAddress(false);
-      fetchAddresses();
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error adding address",
+        title: "Error",
         description: error.message,
       });
     }
   };
 
-  const setDefaultAddress = async (addressId: string) => {
-    if (!user) return;
-
+  const handleStatusToggle = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "published" ? "draft" : "published";
     try {
-      // First, set all addresses to non-default
-      const { error: updateError } = await supabase
-        .from("user_addresses")
-        .update({ is_default: false })
-        .eq("user_id", user.id);
-
-      if (updateError) throw updateError;
-
-      // Then set the selected address as default
       const { error } = await supabase
-        .from("user_addresses")
-        .update({ is_default: true })
-        .eq("id", addressId);
+        .from("products")
+        .update({ status: newStatus })
+        .eq("id", id);
 
       if (error) throw error;
 
-      toast({
-        title: "Default address updated",
-        description: "Your default shipping address has been updated.",
-      });
+      setProducts(
+        products.map((product) =>
+          product.id === id ? { ...product, status: newStatus } : product
+        )
+      );
 
-      fetchAddresses();
+      toast({
+        title: "Status updated",
+        description: `Product is now ${newStatus}.`,
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error updating default address",
+        title: "Error",
         description: error.message,
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="space-y-8">
-        {/* Profile Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Your personal information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div>Loading...</div>
-            ) : (
-              <div>
-                <h3 className="font-medium">{profile?.full_name || user?.email}</h3>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Addresses Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Shipping Addresses</CardTitle>
-            <CardDescription>Manage your shipping addresses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Existing Addresses */}
-              {addresses.map((address) => (
-                <div key={address.id} className="p-4 border rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p>{address.address_line1}</p>
-                      <p>{`${address.city}, ${address.state} ${address.postal_code}`}</p>
-                      <p>{address.country}</p>
-                    </div>
-                    {!address.is_default && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDefaultAddress(address.id)}
-                      >
-                        Set as Default
-                      </Button>
-                    )}
-                  </div>
-                  {address.is_default && (
-                    <span className="inline-block mt-2 text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-                      Default Address
-                    </span>
-                  )}
-                </div>
-              ))}
-
-              {/* Add New Address Form */}
-              {isAddingAddress ? (
-                <form onSubmit={handleAddAddress} className="space-y-4">
-                  <Input
-                    name="address_line1"
-                    placeholder="Street Address"
-                    value={newAddress.address_line1}
-                    onChange={handleAddressChange}
-                    required
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      name="city"
-                      placeholder="City"
-                      value={newAddress.city}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                    <Input
-                      name="state"
-                      placeholder="State"
-                      value={newAddress.state}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      name="postal_code"
-                      placeholder="Postal Code"
-                      value={newAddress.postal_code}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                    <Input
-                      name="country"
-                      placeholder="Country"
-                      value={newAddress.country}
-                      onChange={handleAddressChange}
-                      required
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <Button type="submit">Save Address</Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsAddingAddress(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddingAddress(true)}
-                >
-                  Add New Address
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">My Products</h1>
+        <Button onClick={() => navigate("/products/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Product
+        </Button>
       </div>
+
+      {products.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No products yet. Create your first product!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="border rounded-lg overflow-hidden shadow-sm"
+            >
+              <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.title}
+                    className="object-cover w-full h-48"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-48 bg-gray-100">
+                    <span className="text-gray-400">No image</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
+                <p className="text-gray-600 mb-2">
+                  Price: ${product.price.toFixed(2)}
+                </p>
+                <p className="text-gray-600 mb-4">Stock: {product.stock}</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/products/edit/${product.id}`)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleStatusToggle(product.id, product.status)}
+                  >
+                    {product.status === "published" ? "Unpublish" : "Publish"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteProduct(product.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

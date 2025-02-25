@@ -9,118 +9,39 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
-  isAdmin: false,
 });
 
-// Try to get the cached session from localStorage
-const getCachedSession = () => {
-  try {
-    const cachedSession = localStorage.getItem('supabase.auth.token');
-    return cachedSession ? JSON.parse(cachedSession) : null;
-  } catch (error) {
-    console.error('Error reading cached session:', error);
-    return null;
-  }
-};
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const cachedSession = getCachedSession();
-    return cachedSession?.currentSession?.user ?? null;
-  });
-  const [loading, setLoading] = useState(!getCachedSession());
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    let mounted = true;
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-    const initializeAuth = async () => {
-      try {
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          if (session?.user) {
-            setUser(session.user);
-            await checkAdminStatus(session.user.id);
-          }
-        }
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-        // Set up session change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            if (mounted) {
-              setUser(session?.user ?? null);
-              if (session?.user) {
-                await checkAdminStatus(session.user.id);
-              } else {
-                setIsAdmin(false);
-              }
-
-              if (event === 'SIGNED_OUT') {
-                localStorage.removeItem('supabase.auth.token');
-                navigate('/auth');
-              }
-            }
-          }
-        );
-
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Cleanup function
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
-
-  const checkAdminStatus = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-        return;
-      }
-
-      setIsAdmin(!!data?.is_admin);
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setIsAdmin(false);
-    }
-  };
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
-      setIsAdmin(false);
-      localStorage.removeItem('supabase.auth.token');
       navigate("/auth");
       toast({
         title: "Signed out successfully",
@@ -136,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

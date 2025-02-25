@@ -1,6 +1,5 @@
 
-import { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { createContext, useContext, useReducer, ReactNode } from "react";
 import { Tables } from "@/integrations/supabase/types";
 
 type CartItem = {
@@ -20,8 +19,7 @@ type CartAction =
   | { type: "ADD_ITEM"; payload: CartItem }
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
-  | { type: "CLEAR_CART" }
-  | { type: "LOAD_CART"; payload: CartState };
+  | { type: "CLEAR_CART" };
 
 type CartContextType = {
   state: CartState;
@@ -33,14 +31,7 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const initialState: CartState = {
-  items: [],
-  total: 0,
-};
-
 const cartReducer = (state: CartState, action: CartAction): CartState => {
-  let newState: CartState;
-
   switch (action.type) {
     case "ADD_ITEM": {
       const existingItem = state.items.find(item => item.id === action.payload.id);
@@ -51,27 +42,25 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
-        newState = {
+        return {
           items: updatedItems,
           total: updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
         };
-      } else {
-        const newItems = [...state.items, { ...action.payload, quantity: 1 }];
-        newState = {
-          items: newItems,
-          total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-        };
       }
-      break;
+
+      const newItems = [...state.items, { ...action.payload, quantity: 1 }];
+      return {
+        items: newItems,
+        total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      };
     }
 
     case "REMOVE_ITEM": {
       const newItems = state.items.filter(item => item.id !== action.payload);
-      newState = {
+      return {
         items: newItems,
         total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
-      break;
     }
 
     case "UPDATE_QUANTITY": {
@@ -80,51 +69,28 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           ? { ...item, quantity: action.payload.quantity }
           : item
       );
-      newState = {
+      return {
         items: newItems,
         total: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
-      break;
     }
 
     case "CLEAR_CART":
-      newState = initialState;
-      break;
-
-    case "LOAD_CART":
-      newState = action.payload;
-      break;
+      return {
+        items: [],
+        total: 0,
+      };
 
     default:
       return state;
   }
-
-  return newState;
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
-  const [state, dispatch] = useReducer(cartReducer, initialState);
-
-  // Load cart from localStorage when component mounts or user changes
-  useEffect(() => {
-    if (user) {
-      const savedCart = localStorage.getItem(`cart_${user.id}`);
-      if (savedCart) {
-        dispatch({ type: "LOAD_CART", payload: JSON.parse(savedCart) });
-      }
-    } else {
-      // Clear cart when user logs out
-      dispatch({ type: "CLEAR_CART" });
-    }
-  }, [user]);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (user && state !== initialState) {
-      localStorage.setItem(`cart_${user.id}`, JSON.stringify(state));
-    }
-  }, [state, user]);
+  const [state, dispatch] = useReducer(cartReducer, {
+    items: [],
+    total: 0,
+  });
 
   const addItem = (item: Omit<CartItem, "quantity">) => {
     dispatch({ type: "ADD_ITEM", payload: { ...item, quantity: 1 } });
@@ -140,9 +106,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     dispatch({ type: "CLEAR_CART" });
-    if (user) {
-      localStorage.removeItem(`cart_${user.id}`);
-    }
   };
 
   return (
