@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -20,6 +28,7 @@ const Auth = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOTP] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -77,6 +86,11 @@ const Auth = () => {
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              role: isAdmin ? 'admin' : 'buyer',
+            },
+          },
         });
         if (error) throw error;
 
@@ -165,36 +179,6 @@ const Auth = () => {
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter your email address",
-      });
-      return;
-    }
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-      if (error) throw error;
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the reset link",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (showOTP) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -207,13 +191,20 @@ const Auth = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <Input
-                type="text"
-                placeholder="Enter verification code"
-                value={otp}
-                onChange={(e) => setOTP(e.target.value)}
-                required
-              />
+              <div className="flex justify-center">
+                <InputOTP
+                  value={otp}
+                  onChange={setOTP}
+                  maxLength={6}
+                  render={({ slots }) => (
+                    <InputOTPGroup className="gap-2">
+                      {slots.map((slot, idx) => (
+                        <InputOTPSlot key={idx} {...slot} index={idx} />
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Verifying..." : "Verify Email"}
               </Button>
@@ -272,9 +263,14 @@ const Auth = () => {
               />
             </div>
             {!isLogin && (
-              <p className="text-sm text-gray-500">
-                Password must be at least 6 characters long
-              </p>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isAdmin"
+                  checked={isAdmin}
+                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                />
+                <Label htmlFor="isAdmin">Sign up as admin</Label>
+              </div>
             )}
           </div>
 
@@ -298,16 +294,6 @@ const Auth = () => {
                   : "Already have an account? Sign in"}
               </button>
             </div>
-            
-            {isLogin && (
-              <button
-                type="button"
-                onClick={handlePasswordReset}
-                className="text-sm text-primary hover:text-primary/90"
-              >
-                Forgot your password?
-              </button>
-            )}
           </div>
         </form>
       </div>
