@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -75,6 +76,7 @@ const Auth = () => {
 
         if (!data.user?.email_confirmed_at) {
           setShowOTP(true);
+          setLoading(false);
           toast({
             title: "Email verification required",
             description: "Please verify your email to continue.",
@@ -179,17 +181,21 @@ const Auth = () => {
     }
   };
 
-  if (showOTP) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Verify your email</CardTitle>
-            <CardDescription>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">
+            {showOTP ? "Verify your email" : isLogin ? "Sign in" : "Create account"}
+          </CardTitle>
+          {showOTP && (
+            <CardDescription className="text-center">
               Enter the verification code sent to {email}
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+          )}
+        </CardHeader>
+        <CardContent>
+          {showOTP ? (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               <div className="flex justify-center">
                 <InputOTP
@@ -206,7 +212,14 @@ const Auth = () => {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify Email"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Verify Email"
+                )}
               </Button>
               <Button
                 type="button"
@@ -228,75 +241,63 @@ const Auth = () => {
                 Back to Sign In
               </Button>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isLogin ? "Sign in to your account" : "Create your account"}
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <Input
-                type="email"
-                required
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <Input
-                type="password"
-                required
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {!isLogin && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isAdmin"
-                  checked={isAdmin}
-                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+          ) : (
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
-                <Label htmlFor="isAdmin">Sign up as admin</Label>
+                <Input
+                  type="password"
+                  required
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                {!isLogin && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isAdmin"
+                      checked={isAdmin}
+                      onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                    />
+                    <Label htmlFor="isAdmin">Sign up as admin</Label>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="flex flex-col gap-4">
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? "Loading..."
-                : isLogin
-                ? "Sign in"
-                : "Create account"}
-            </Button>
-            
-            <div className="text-sm text-center">
-              <button
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? "Signing in..." : "Creating account..."}
+                  </>
+                ) : (
+                  isLogin ? "Sign in" : "Create account"
+                )}
+              </Button>
+              
+              <Button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary hover:text-primary/90"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setShowOTP(false);
+                }}
               >
                 {isLogin
                   ? "Don't have an account? Sign up"
                   : "Already have an account? Sign in"}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
