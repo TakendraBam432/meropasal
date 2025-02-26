@@ -211,8 +211,12 @@ const Auth = () => {
                   maxLength={6}
                   render={({ slots }) => (
                     <InputOTPGroup className="gap-2">
-                      {slots.map((slot, idx) => (
-                        <InputOTPSlot key={idx} {...slot} />
+                      {slots.map((slot, index) => (
+                        <InputOTPSlot
+                          key={index}
+                          {...slot}
+                          index={index} // Explicitly pass the index prop
+                        />
                       ))}
                     </InputOTPGroup>
                   )}
