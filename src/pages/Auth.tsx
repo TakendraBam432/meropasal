@@ -97,18 +97,12 @@ const Auth = () => {
           throw new Error("An account with this email already exists");
         }
 
-        // Only show OTP if signup was successful and email confirmation is needed
-        if (data.user && !data.user.email_confirmed_at) {
-          setShowOTP(true);
-          setResendTimer(60);
-          toast({
-            title: "Verification code sent!",
-            description: "Please check your email for the verification code.",
-          });
-        } else {
-          // If email confirmation is disabled in Supabase, redirect to home
-          navigate("/");
-        }
+        setShowOTP(true);
+        setResendTimer(60);
+        toast({
+          title: "Verification code sent!",
+          description: "Please check your email for the verification code.",
+        });
       }
     } catch (error: any) {
       let errorMessage = error.message;
@@ -151,7 +145,6 @@ const Auth = () => {
         description: "You can now sign in to your account.",
       });
       
-      // After successful verification, redirect to home
       navigate("/");
     } catch (error: any) {
       toast({
@@ -192,17 +185,21 @@ const Auth = () => {
     }
   };
 
-  if (showOTP) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Verify your email</CardTitle>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">
+            {showOTP ? "Verify your email" : (isLogin ? "Sign in to your account" : "Create your account")}
+          </CardTitle>
+          {showOTP && (
             <CardDescription className="text-center">
               Enter the verification code sent to {email}
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+          )}
+        </CardHeader>
+        <CardContent>
+          {showOTP ? (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               <div className="flex justify-center">
                 <InputOTP
@@ -215,7 +212,7 @@ const Auth = () => {
                         <InputOTPSlot
                           key={index}
                           {...slot}
-                          index={index} // Explicitly pass the index prop
+                          index={index}
                         />
                       ))}
                     </InputOTPGroup>
@@ -252,64 +249,51 @@ const Auth = () => {
                 Back to Sign In
               </Button>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+          ) : (
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  required
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">
-            {isLogin ? "Sign in to your account" : "Create your account"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div className="space-y-4">
-              <Input
-                type="email"
-                required
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
-                type="password"
-                required
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isLogin ? "Signing in..." : "Creating account..."}
-                </>
-              ) : (
-                isLogin ? "Sign in" : "Create account"
-              )}
-            </Button>
-            
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setShowOTP(false);
-              }}
-            >
-              {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? "Signing in..." : "Creating account..."}
+                  </>
+                ) : (
+                  isLogin ? "Sign in" : "Create account"
+                )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setShowOTP(false);
+                }}
+              >
+                {isLogin
+                  ? "Don't have an account? Sign up"
+                  : "Already have an account? Sign in"}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
