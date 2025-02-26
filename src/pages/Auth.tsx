@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,7 @@ import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
+  InputOTPSeparator,
 } from "@/components/ui/input-otp";
 
 const Auth = () => {
@@ -201,23 +201,28 @@ const Auth = () => {
         <CardContent>
           {showOTP ? (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <div className="flex justify-center">
-                <InputOTP
-                  value={otp}
-                  onChange={setOTP}
-                  maxLength={6}
-                  render={({ slots }) => (
-                    <InputOTPGroup className="gap-2">
-                      {slots.map((slot, index) => (
-                        <InputOTPSlot
-                          key={index}
-                          {...slot}
-                          index={index}
-                        />
-                      ))}
-                    </InputOTPGroup>
-                  )}
-                />
+              <div className="flex justify-center mb-4">
+                <div className="w-full max-w-[250px]">
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={(value) => setOTP(value)}
+                    className="gap-2"
+                    inputMode="numeric"
+                    render={({ slots }) => (
+                      <InputOTPGroup>
+                        {slots.map((slot, idx) => (
+                          <React.Fragment key={idx}>
+                            <InputOTPSlot {...slot} />
+                            {idx !== slots.length - 1 && (
+                              <InputOTPSeparator />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </InputOTPGroup>
+                    )}
+                  />
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
