@@ -12,12 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
-} from "@/components/ui/input-otp";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -121,11 +115,11 @@ const Auth = () => {
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otp || otp.length !== 6) {
+    if (!otp) {
       toast({
         variant: "destructive",
         title: "Invalid Code",
-        description: "Please enter a valid 6-digit verification code.",
+        description: "Please enter the verification code.",
       });
       return;
     }
@@ -201,29 +195,13 @@ const Auth = () => {
         <CardContent>
           {showOTP ? (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
-              <div className="flex justify-center mb-4">
-                <div className="w-full max-w-[250px]">
-                  <InputOTP
-                    maxLength={6}
-                    value={otp}
-                    onChange={(value) => setOTP(value)}
-                    className="gap-2"
-                    inputMode="numeric"
-                    render={({ slots }) => (
-                      <InputOTPGroup>
-                        {slots.map((slot, idx) => (
-                          <React.Fragment key={idx}>
-                            <InputOTPSlot {...slot} />
-                            {idx !== slots.length - 1 && (
-                              <InputOTPSeparator />
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </InputOTPGroup>
-                    )}
-                  />
-                </div>
-              </div>
+              <Input
+                type="text"
+                placeholder="Enter verification code"
+                value={otp}
+                onChange={(e) => setOTP(e.target.value)}
+                required
+              />
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
