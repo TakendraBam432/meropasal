@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -250,6 +251,19 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+
+              {isLogin && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto"
+                    onClick={() => navigate("/auth/reset-password")}
+                  >
+                    Forgot password?
+                  </Button>
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
