@@ -2,41 +2,23 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
-
-      if (error || !data?.is_admin) {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "You don't have permission to access this area",
-        });
-        navigate("/");
-      }
-    };
-
-    if (!loading) {
-      checkAdminStatus();
+    if (!loading && (!user || !profile?.is_admin)) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access this area",
+      });
+      navigate("/");
     }
-  }, [user, loading, navigate, toast]);
+  }, [user, profile, loading, navigate, toast]);
 
   if (loading) {
     return (
@@ -46,5 +28,5 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return user ? <>{children}</> : null;
+  return (user && profile?.is_admin) ? <>{children}</> : null;
 };

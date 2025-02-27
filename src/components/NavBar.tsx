@@ -1,47 +1,20 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ShoppingCart, Search, User, LogOut, Package, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { supabase } from "@/integrations/supabase/client";
 
 const NavBar = () => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { state } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const cartItemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          return;
-        }
-        
-        setIsAdmin(data?.is_admin || false);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +55,7 @@ const NavBar = () => {
                   <Package className="h-5 w-5" />
                 </Button>
                 
-                {isAdmin ? (
+                {profile?.is_admin ? (
                   <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="nav-link">
                     <Settings className="h-5 w-5" />
                   </Button>
