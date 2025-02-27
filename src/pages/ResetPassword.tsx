@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,7 +25,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSendResetOTP = async (e: React.FormEvent) => {
+  const handleSendResetEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast({
@@ -36,20 +37,16 @@ const ResetPassword = () => {
     }
     try {
       setLoading(true);
-      // Using signInWithOtp instead of resetPasswordForEmail for OTP-based flow
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        }
+      // Use resetPasswordForEmail instead of signInWithOtp to properly trigger a password reset
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password?update=true`,
       });
+      
       if (error) throw error;
 
-      setShowOTP(true);
-      setResendTimer(60);
       toast({
-        title: "Verification code sent",
-        description: "Please check your email for the verification code",
+        title: "Password reset email sent",
+        description: "Please check your email for the password reset link",
       });
     } catch (error: any) {
       toast({
@@ -69,7 +66,7 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'email'
+        type: 'recovery'
       });
       
       if (error) throw error;
@@ -95,18 +92,13 @@ const ResetPassword = () => {
     
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-        }
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
       
       setResendTimer(60);
       toast({
-        title: "New code sent!",
-        description: "Please check your email for the new verification code",
+        title: "New reset email sent!",
+        description: "Please check your email for the password reset instructions",
       });
 
       // Start countdown timer
@@ -177,7 +169,12 @@ const ResetPassword = () => {
                 minLength={6}
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Updating..." : "Update Password"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : "Update Password"}
               </Button>
             </form>
           </CardContent>
@@ -206,7 +203,12 @@ const ResetPassword = () => {
                 required
               />
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify Code"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : "Verify Code"}
               </Button>
               <Button
                 type="button"
@@ -232,11 +234,11 @@ const ResetPassword = () => {
         <CardHeader>
           <CardTitle>Reset your password</CardTitle>
           <CardDescription>
-            Enter your email to receive a verification code
+            Enter your email to receive a password reset link
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSendResetOTP} className="space-y-4">
+          <form onSubmit={handleSendResetEmail} className="space-y-4">
             <Input
               type="email"
               placeholder="Email address"
@@ -245,7 +247,12 @@ const ResetPassword = () => {
               required
             />
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send verification code"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : "Send password reset link"}
             </Button>
             <Button
               type="button"
