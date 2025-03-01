@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchIcon, ShoppingCart, User, Package } from "lucide-react";
 
 const NavBar = () => {
@@ -22,11 +22,27 @@ const NavBar = () => {
   const { state } = useCart();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isSigningOut) return;
+    
+    try {
+      setIsSigningOut(true);
+      console.log("Initiating sign out...");
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -44,7 +60,7 @@ const NavBar = () => {
             <div className="relative w-full">
               <Input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products by name, category or tag..."
                 className="w-full pr-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -104,8 +120,8 @@ const NavBar = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>
-                    Log out
+                  <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut}>
+                    {isSigningOut ? "Signing out..." : "Log out"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

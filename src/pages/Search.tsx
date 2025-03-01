@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import ProductCard from "@/components/ProductCard";
 import NavBar from "@/components/NavBar";
+import ProductCard from "@/components/ProductCard";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
@@ -12,10 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { X, Filter, Search as SearchIcon } from "lucide-react";
 
 interface Product {
   id: string;
@@ -23,205 +23,332 @@ interface Product {
   price: number;
   image_url: string;
   category: string;
-  stock: number;
-  status: string;
+  description: string;
 }
 
-const CATEGORIES = ["Electronics", "Clothing", "Books", "Home", "Sports"];
-const MAX_PRICE = 2000;
-
-const SearchPage = () => {
+const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState({
-    category: searchParams.get("category") || "",
-    minPrice: Number(searchParams.get("minPrice")) || 0,
-    maxPrice: Number(searchParams.get("maxPrice")) || MAX_PRICE,
-    inStock: searchParams.get("inStock") === "true",
-  });
-
   const query = searchParams.get("q") || "";
+  const categoryFilter = searchParams.get("category") || "";
+  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(query);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState(categoryFilter);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  
+  const { toast } = useToast();
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["products", query, filters],
-    queryFn: async () => {
-      let queryBuilder = supabase
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, [query, categoryFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .not("category", "is", null)
+        .order("category");
+
+      if (error) throw error;
+
+      const uniqueCategories = Array.from(
+        new Set(data.map((item) => item.category))
+      ).filter(Boolean) as string[];
+
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      let productsQuery = supabase
         .from("products")
         .select("*")
-        .eq("status", "active");
+        .order("created_at", { ascending: false });
 
+      // Apply search filter (search in title, description, and category)
       if (query) {
-        queryBuilder = queryBuilder.ilike("title", `%${query}%`);
+        productsQuery = productsQuery.or(
+          `title.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`
+        );
       }
 
-      if (filters.category) {
-        queryBuilder = queryBuilder.eq("category", filters.category);
+      // Apply category filter
+      if (categoryFilter) {
+        productsQuery = productsQuery.eq("category", categoryFilter);
       }
 
-      queryBuilder = queryBuilder
-        .gte("price", filters.minPrice)
-        .lte("price", filters.maxPrice);
-
-      if (filters.inStock) {
-        queryBuilder = queryBuilder.gt("stock", 0);
+      // Apply min price filter
+      if (searchParams.get("min_price")) {
+        const min = parseFloat(searchParams.get("min_price") || "0");
+        productsQuery = productsQuery.gte("price", min);
+      }
+      
+      // Apply max price filter
+      if (searchParams.get("max_price")) {
+        const max = parseFloat(searchParams.get("max_price") || "1000000");
+        productsQuery = productsQuery.lte("price", max);
       }
 
-      const { data, error } = await queryBuilder;
+      const { data, error } = await productsQuery;
+
       if (error) throw error;
-      return data as Product[];
-    },
-  });
 
-  const updateFilters = (newFilters: Partial<typeof filters>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
+      setProducts(data as Product[]);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching products",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSearchParams();
+  };
+
+  const updateSearchParams = () => {
+    const params = new URLSearchParams();
     
-    const params = new URLSearchParams(searchParams);
-    Object.entries(updatedFilters).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, String(value));
-      } else {
-        params.delete(key);
-      }
-    });
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    } else {
+      params.delete("q");
+    }
+    
+    if (selectedCategory) {
+      params.set("category", selectedCategory);
+    } else {
+      params.delete("category");
+    }
+    
+    if (minPrice) {
+      params.set("min_price", minPrice);
+    } else {
+      params.delete("min_price");
+    }
+    
+    if (maxPrice) {
+      params.set("max_price", maxPrice);
+    } else {
+      params.delete("max_price");
+    }
+    
     setSearchParams(params);
   };
 
   const clearFilters = () => {
-    setFilters({
-      category: "",
-      minPrice: 0,
-      maxPrice: MAX_PRICE,
-      inStock: false,
-    });
-    setSearchParams({ q: query });
+    setSearchQuery("");
+    setSelectedCategory("");
+    setMinPrice("");
+    setMaxPrice("");
+    setSearchParams(new URLSearchParams());
+  };
+
+  const removeFilter = (filterName: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete(filterName);
+    setSearchParams(params);
+
+    if (filterName === "q") setSearchQuery("");
+    if (filterName === "category") setSelectedCategory("");
+    if (filterName === "min_price") setMinPrice("");
+    if (filterName === "max_price") setMaxPrice("");
   };
 
   return (
     <div>
       <NavBar />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full md:w-64 space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Filters</h3>
-              <Button
-                variant="outline"
-                className="w-full mb-4"
-                onClick={clearFilters}
-              >
-                Clear Filters
-              </Button>
-            </div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">
+            {query ? `Search Results: "${query}"` : "All Products"}
+          </h1>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={filters.category}
-                onValueChange={(value) => updateFilters({ category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
-                  {CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {showFilters && (
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <form onSubmit={handleSearch} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="search" className="block text-sm font-medium mb-1">
+                    Search
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="search"
+                      placeholder="Search by product name, description or category"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <SearchIcon size={16} />
+                    </div>
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Price Range</label>
-              <div className="pt-6">
-                <Slider
-                  min={0}
-                  max={MAX_PRICE}
-                  step={10}
-                  value={[filters.minPrice, filters.maxPrice]}
-                  onValueChange={([min, max]) =>
-                    updateFilters({ minPrice: min, maxPrice: max })
-                  }
-                />
-                <div className="flex justify-between mt-2 text-sm text-gray-600">
-                  <span>${filters.minPrice}</span>
-                  <span>${filters.maxPrice}</span>
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium mb-1">
+                    Category
+                  </label>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}
+                  >
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="minPrice" className="block text-sm font-medium mb-1">
+                      Min Price
+                    </label>
+                    <Input
+                      id="minPrice"
+                      type="number"
+                      placeholder="Min"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="maxPrice" className="block text-sm font-medium mb-1">
+                      Max Price
+                    </label>
+                    <Input
+                      id="maxPrice"
+                      type="number"
+                      placeholder="Max"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={filters.inStock}
-                  onChange={(e) => updateFilters({ inStock: e.target.checked })}
-                  className="rounded border-gray-300"
-                />
-                <span className="text-sm font-medium">In Stock Only</span>
-              </label>
-            </div>
+              <div className="flex justify-between">
+                <Button type="submit" className="w-full md:w-auto">
+                  Apply Filters
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="w-full md:w-auto mt-2 md:mt-0"
+                >
+                  Clear All
+                </Button>
+              </div>
+            </form>
           </div>
+        )}
 
-          {/* Products Grid */}
-          <div className="flex-1">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-4">
-                {query ? `Search Results for "${query}"` : "All Products"}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(filters).map(([key, value]) => {
-                  if (!value || (key === "maxPrice" && value === MAX_PRICE)) return null;
-                  return (
-                    <Badge key={key} variant="secondary">
-                      {key === "minPrice"
-                        ? `Min $${value}`
-                        : key === "maxPrice"
-                        ? `Max $${value}`
-                        : key === "inStock"
-                        ? "In Stock"
-                        : `${key}: ${value}`}
-                    </Badge>
-                  );
-                })}
-              </div>
-            </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="bg-gray-200 rounded-lg aspect-square mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                ))}
-              </div>
-            ) : !products?.length ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No products found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    image={product.image_url}
-                  />
-                ))}
-              </div>
+        {/* Active filters */}
+        {(query || categoryFilter || searchParams.get("min_price") || searchParams.get("max_price")) && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="text-sm font-medium py-1">Active filters:</span>
+            {query && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Search: {query}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter("q")} 
+                />
+              </Badge>
+            )}
+            {categoryFilter && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Category: {categoryFilter}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter("category")} 
+                />
+              </Badge>
+            )}
+            {searchParams.get("min_price") && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Min Price: ${searchParams.get("min_price")}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter("min_price")} 
+                />
+              </Badge>
+            )}
+            {searchParams.get("max_price") && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Max Price: ${searchParams.get("max_price")}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => removeFilter("max_price")} 
+                />
+              </Badge>
             )}
           </div>
-        </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                price={product.price}
+                image={product.image_url || "/placeholder.svg"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-semibold mb-2">No products found</h2>
+            <p className="text-gray-600 mb-6">
+              Try adjusting your search or filter criteria
+            </p>
+            <Button onClick={clearFilters}>View All Products</Button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default SearchPage;
+export default Search;
