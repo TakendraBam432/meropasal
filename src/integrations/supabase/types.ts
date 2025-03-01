@@ -155,6 +155,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean | null
+          is_super_admin: boolean | null
           role: string | null
           updated_at: string | null
         }
@@ -164,6 +165,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_admin?: boolean | null
+          is_super_admin?: boolean | null
           role?: string | null
           updated_at?: string | null
         }
@@ -173,6 +175,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          is_super_admin?: boolean | null
           role?: string | null
           updated_at?: string | null
         }

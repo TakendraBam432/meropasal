@@ -70,15 +70,21 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
+      // Make sure to explicitly select is_super_admin column
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, is_admin, is_super_admin');
 
       if (error) throw error;
 
-      // Fetch emails from auth.users through a view or function (this would need server-side)
-      // For now, we'll just display the user IDs
-      setUsers(data as UserData[]);
+      // Add email field as a placeholder since we don't have direct access to emails
+      // This will avoid TypeScript errors with the UserData interface
+      const usersWithEmail = data.map(user => ({
+        ...user,
+        email: `User-${user.id.substring(0, 8)}`, // Using a placeholder for email
+      }));
+
+      setUsers(usersWithEmail as UserData[]);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
