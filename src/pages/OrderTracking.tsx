@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Package, Truck, CheckCircle, Search } from "lucide-react";
 import NavBar from "@/components/NavBar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
