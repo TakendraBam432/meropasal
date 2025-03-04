@@ -6,7 +6,7 @@ import { User } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthContextType, UserProfile } from "./types";
 import { getCachedUser, fetchUserProfile, cacheUserData } from "./utils";
-import { setUserAsSuperAdmin, createUserAsAdmin } from "./adminUtils";
+import { setAsSuperAdmin, createAdmin } from "./adminUtils";
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -103,12 +103,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const setAsSuperAdmin = async (userId: string) => {
-    await setUserAsSuperAdmin(userId, profile, toast);
+  const handleSetAsSuperAdmin = async (userId: string) => {
+    try {
+      await setAsSuperAdmin(userId);
+      
+      toast({
+        title: "User promoted",
+        description: "User has been granted super admin privileges",
+      });
+    } catch (error: any) {
+      console.error("Error promoting user:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update user permissions.",
+      });
+    }
   };
 
-  const createAdmin = async (userId: string) => {
-    await createUserAsAdmin(userId, profile, toast);
+  const handleCreateAdmin = async (userId: string) => {
+    try {
+      await createAdmin(userId);
+      
+      toast({
+        title: "User promoted",
+        description: "User has been granted admin privileges",
+      });
+    } catch (error: any) {
+      console.error("Error promoting user:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update user permissions.",
+      });
+    }
   };
 
   return (
@@ -117,8 +145,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       profile, 
       loading, 
       signOut, 
-      setAsSuperAdmin, 
-      createAdmin 
+      setAsSuperAdmin: handleSetAsSuperAdmin, 
+      createAdmin: handleCreateAdmin 
     }}>
       {children}
     </AuthContext.Provider>
