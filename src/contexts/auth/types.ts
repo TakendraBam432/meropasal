@@ -2,6 +2,7 @@
 import { User } from "@supabase/supabase-js";
 
 export interface UserProfile {
+  id: string;
   is_admin: boolean;
   is_super_admin?: boolean;
   full_name?: string;
