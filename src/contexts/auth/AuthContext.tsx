@@ -1,5 +1,5 @@
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -24,59 +24,94 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Fetch user profile with memoization to prevent unnecessary data fetching
+  const fetchProfile = async (userId: string) => {
+    try {
+      const profileData = await fetchUserProfile(userId);
+      setProfile(profileData);
+      return profileData;
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    // Initial check for active session
+    let mounted = true;
+    
+    // Initial check for active session - optimized to avoid multiple fetches
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
+      try {
+        // Get cached session first for immediate UI update
+        const cachedUser = getCachedUser();
+        if (cachedUser?.user) {
+          setUser(cachedUser.user);
+          setProfile(cachedUser.profile);
+        }
         
-        // Fetch profile data
-        const profileData = await fetchUserProfile(session.user.id);
-        setProfile(profileData);
+        // Then check for actual session
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Cache the user data
-        cacheUserData({ user: session.user, profile: profileData });
+        if (session?.user && mounted) {
+          setUser(session.user);
+          
+          // Only fetch profile if we don't have it or if user ID changed
+          if (!profile || profile.id !== session.user.id) {
+            const profileData = await fetchProfile(session.user.id);
+            
+            // Cache the user data if we got a valid profile
+            if (profileData) {
+              cacheUserData({ user: session.user, profile: profileData });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        if (mounted) setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initializeAuth();
 
-    // Subscribe to auth changes
+    // Subscribe to auth changes - improved with cleanup
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
+        
         setLoading(true);
         
         if (session?.user) {
           setUser(session.user);
           
-          // Fetch profile data on auth change
-          const profileData = await fetchUserProfile(session.user.id);
-          setProfile(profileData);
-          
-          // Cache the updated user data
-          cacheUserData({ user: session.user, profile: profileData });
+          // Only fetch profile if needed
+          if (!profile || profile.id !== session.user.id) {
+            const profileData = await fetchProfile(session.user.id);
+            
+            if (profileData && mounted) {
+              cacheUserData({ user: session.user, profile: profileData });
+            }
+          } else {
+            setLoading(false);
+          }
         } else {
           setUser(null);
           setProfile(null);
           localStorage.removeItem('userData');
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      console.log("Signing out user...");
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       
       if (error) throw error;
@@ -100,6 +135,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -139,15 +176,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user, 
+    profile, 
+    loading, 
+    signOut, 
+    setAsSuperAdmin: handleSetAsSuperAdmin, 
+    createAdmin: handleCreateAdmin
+  }), [user, profile, loading]);
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      profile, 
-      loading, 
-      signOut, 
-      setAsSuperAdmin: handleSetAsSuperAdmin, 
-      createAdmin: handleCreateAdmin 
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
