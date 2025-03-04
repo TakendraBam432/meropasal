@@ -4,20 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/components/ui/use-toast";
 
-export const AdminRoute = memo(({ children }: { children: React.ReactNode }) => {
+export const SuperAdminRoute = memo(({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Only check authorization when we have all the data
     if (!loading) {
-      if (!user || !profile?.is_admin) {
+      if (!user || !profile?.is_super_admin) {
         toast({
           variant: "destructive",
           title: "Access Denied",
-          description: "You don't have permission to access this area",
+          description: "Super Admin access required",
         });
         navigate("/", { replace: true });
       } else {
@@ -26,7 +25,7 @@ export const AdminRoute = memo(({ children }: { children: React.ReactNode }) => 
     }
   }, [user, profile, loading, navigate, toast]);
 
-  // Show loading state only on initial load, not during transitions
+  // Only show loading state on initial load
   if (loading && isAuthorized === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -38,4 +37,4 @@ export const AdminRoute = memo(({ children }: { children: React.ReactNode }) => 
   return isAuthorized ? <>{children}</> : null;
 });
 
-AdminRoute.displayName = "AdminRoute";
+SuperAdminRoute.displayName = "SuperAdminRoute";

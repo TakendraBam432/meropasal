@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
+import { Loading } from "@/components/ui/loading";
+import { useQuery } from "@tanstack/react-query";
 
 interface Product {
   id: string;
@@ -18,38 +21,31 @@ interface Product {
 }
 
 const Dashboard = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
+  // Use React Query for data fetching with caching
+  const { data: products = [], isLoading, refetch } = useQuery({
+    queryKey: ['userProducts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("seller_id", user?.id)
+        .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data as Product[];
+    },
+    enabled: !!user?.id,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false
+  });
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleDeleteProduct = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from("products")
@@ -58,7 +54,9 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setProducts(products.filter((product) => product.id !== id));
+      // Refetch data instead of manipulating local state
+      refetch();
+      
       toast({
         title: "Product deleted",
         description: "The product has been successfully deleted.",
@@ -70,9 +68,9 @@ const Dashboard = () => {
         description: error.message,
       });
     }
-  };
+  }, [refetch, toast]);
 
-  const handleStatusToggle = async (id: string, currentStatus: string) => {
+  const handleStatusToggle = useCallback(async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "published" ? "draft" : "published";
     try {
       const { error } = await supabase
@@ -82,11 +80,8 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setProducts(
-        products.map((product) =>
-          product.id === id ? { ...product, status: newStatus } : product
-        )
-      );
+      // Refetch data instead of manipulating local state
+      refetch();
 
       toast({
         title: "Status updated",
@@ -99,14 +94,74 @@ const Dashboard = () => {
         description: error.message,
       });
     }
-  };
+  }, [refetch, toast]);
 
-  if (loading) {
+  // Memoize the product grid to prevent unnecessary re-renders
+  const productGrid = useMemo(() => {
+    if (products.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No products yet. Create your first product!</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map((product) => (
+          <div
+            key={product.id}
+            className="border rounded-lg overflow-hidden shadow-sm"
+          >
+            <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+              {product.image_url ? (
+                <img
+                  src={product.image_url}
+                  alt={product.title}
+                  className="object-cover w-full h-48"
+                  loading="lazy" // Use lazy loading for images
+                />
+              ) : (
+                <div className="flex items-center justify-center h-48 bg-gray-100">
+                  <span className="text-gray-400">No image</span>
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
+              <p className="text-gray-600 mb-2">
+                Price: ${product.price.toFixed(2)}
+              </p>
+              <p className="text-gray-600 mb-4">Stock: {product.stock}</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/products/edit/${product.id}`)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleStatusToggle(product.id, product.status)}
+                >
+                  {product.status === "published" ? "Unpublish" : "Publish"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteProduct(product.id)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
+  }, [products, navigate, handleStatusToggle, handleDeleteProduct]);
+
+  if (isLoading) {
+    return <Loading fullScreen size="lg" />;
   }
 
   return (
@@ -119,61 +174,7 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      {products.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No products yet. Create your first product!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="border rounded-lg overflow-hidden shadow-sm"
-            >
-              <div className="aspect-w-16 aspect-h-9 bg-gray-100">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.title}
-                    className="object-cover w-full h-48"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-48 bg-gray-100">
-                    <span className="text-gray-400">No image</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
-                <p className="text-gray-600 mb-2">
-                  Price: ${product.price.toFixed(2)}
-                </p>
-                <p className="text-gray-600 mb-4">Stock: {product.stock}</p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/products/edit/${product.id}`)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleStatusToggle(product.id, product.status)}
-                  >
-                    {product.status === "published" ? "Unpublish" : "Publish"}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDeleteProduct(product.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {productGrid}
     </div>
   );
 };

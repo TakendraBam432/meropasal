@@ -1,9 +1,9 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+export const ProtectedRoute = memo(({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
@@ -29,4 +29,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return isAuthorized ? <>{children}</> : null;
-};
+});
+
+ProtectedRoute.displayName = "ProtectedRoute";
