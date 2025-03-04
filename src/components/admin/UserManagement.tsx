@@ -21,10 +21,10 @@ interface UserData {
 }
 
 interface UserManagementProps {
-  initialUsers: UserData[];
+  initialUsers?: UserData[]; // Made optional with ? operator
 }
 
-const UserManagement = ({ initialUsers }: UserManagementProps) => {
+const UserManagement = ({ initialUsers = [] }: UserManagementProps) => {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
