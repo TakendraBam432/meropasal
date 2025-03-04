@@ -16,7 +16,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Search from "@/pages/Search";
 import Checkout from "@/pages/Checkout";
 import Orders from "@/pages/Orders";
-import OrderTracking from "@/pages/OrderTracking";
+import OrderTracking from "@/pages/order-tracking";
 
 function App() {
   return (
