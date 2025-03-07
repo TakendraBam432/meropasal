@@ -19,6 +19,37 @@ export interface Order {
   last_updated?: string;
   shipping_carrier?: string;
   delivery_notes?: string;
+  items?: OrderItem[];
+  package_details?: PackageDetails;
+  shipment_updates?: ShipmentUpdate[];
+  can_modify_address?: boolean;
+}
+
+export interface OrderItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  product_image?: string;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface PackageDetails {
+  weight: number;
+  weight_unit: string;
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+    unit: string;
+  };
+}
+
+export interface ShipmentUpdate {
+  timestamp: string;
+  status: string;
+  location?: string;
+  description: string;
 }
 
 export const statusColors: Record<OrderStatus, string> = {
@@ -56,4 +87,12 @@ export const getEstimatedDeliveryMessage = (order: Order): string => {
   } else {
     return 'Estimated delivery date unavailable';
   }
+};
+
+export const formatTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };

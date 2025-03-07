@@ -1,13 +1,18 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import OrderTimeline from "./OrderTimeline";
 import ShippingAddress from "./ShippingAddress";
+import OrderItems from "./OrderItems";
+import PackageDetails from "./PackageDetails";
+import ShipmentUpdates from "./ShipmentUpdates";
+import ModifyAddress from "./ModifyAddress";
+import DeliveryNotifications from "./DeliveryNotifications";
 import { Order, statusColors, formatDate, getEstimatedDeliveryMessage } from "../types";
-import { ArrowLeft, ExternalLink, Printer } from "lucide-react";
+import { ArrowLeft, ExternalLink, Printer, Package, Truck } from "lucide-react";
 
 interface OrderDetailsCardProps {
   order: Order;
@@ -17,11 +22,12 @@ interface OrderDetailsCardProps {
 }
 
 const OrderDetailsCard = ({ 
-  order, 
+  order: initialOrder, 
   showSummary = false,
   showContinueShopping = false,
   showBackButton = false
 }: OrderDetailsCardProps) => {
+  const [order, setOrder] = useState<Order>(initialOrder);
   const navigate = useNavigate();
 
   const handlePrint = () => {
@@ -53,6 +59,10 @@ const OrderDetailsCard = ({
       
       window.open(trackingUrl, "_blank");
     }
+  };
+
+  const handleAddressUpdated = (updatedOrder: Order) => {
+    setOrder(updatedOrder);
   };
 
   return (
@@ -89,7 +99,17 @@ const OrderDetailsCard = ({
           <OrderTimeline order={order} />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ShippingAddress order={order} />
+            <div>
+              <ShippingAddress order={order} />
+              {/* Add the address modification component */}
+              <ModifyAddress 
+                order={order} 
+                onAddressUpdated={handleAddressUpdated}
+              />
+
+              {/* Add delivery notifications */}
+              <DeliveryNotifications order={order} />
+            </div>
             
             {showSummary && (
               <div className="border rounded-lg p-4">
@@ -116,6 +136,21 @@ const OrderDetailsCard = ({
             )}
           </div>
           
+          {/* Order Items */}
+          {order.items && order.items.length > 0 && (
+            <OrderItems items={order.items} />
+          )}
+          
+          {/* Package Details */}
+          {order.package_details && (
+            <PackageDetails packageDetails={order.package_details} />
+          )}
+          
+          {/* Shipment Updates */}
+          {order.shipment_updates && order.shipment_updates.length > 0 && (
+            <ShipmentUpdates updates={order.shipment_updates} />
+          )}
+          
           {/* Tracking and Delivery Information */}
           {order.tracking_number && (
             <div className="bg-gray-50 p-4 rounded-lg">
@@ -141,14 +176,27 @@ const OrderDetailsCard = ({
       </CardContent>
       
       <CardFooter className="flex justify-between border-t pt-4">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={handlePrint}
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Print
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handlePrint}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+          
+          {order.tracking_number && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={goToCarrierWebsite}
+            >
+              <Truck className="h-4 w-4 mr-2" />
+              Carrier Website
+            </Button>
+          )}
+        </div>
         
         {showContinueShopping && (
           <Button 
