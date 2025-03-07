@@ -16,6 +16,9 @@ export interface Order {
     zipCode: string;
     country: string;
   };
+  last_updated?: string;
+  shipping_carrier?: string;
+  delivery_notes?: string;
 }
 
 export const statusColors: Record<OrderStatus, string> = {
@@ -27,11 +30,11 @@ export const statusColors: Record<OrderStatus, string> = {
 };
 
 export const statusIcons = {
-  pending: null,
-  processing: null,
-  shipped: null,
-  delivered: null,
-  cancelled: null,
+  pending: "Clock",
+  processing: "Package",
+  shipped: "Truck",
+  delivered: "CheckCircle",
+  cancelled: "XCircle",
 };
 
 export const formatDate = (dateString: string) => {
@@ -41,4 +44,16 @@ export const formatDate = (dateString: string) => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+export const getEstimatedDeliveryMessage = (order: Order): string => {
+  if (order.status === 'delivered') {
+    return 'Delivered on ' + formatDate(order.last_updated || order.created_at);
+  } else if (order.status === 'cancelled') {
+    return 'Order was cancelled';
+  } else if (order.estimated_delivery) {
+    return 'Estimated delivery: ' + formatDate(order.estimated_delivery);
+  } else {
+    return 'Estimated delivery date unavailable';
+  }
 };

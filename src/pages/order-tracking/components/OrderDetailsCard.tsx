@@ -1,32 +1,79 @@
 
 import React from "react";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import OrderTimeline from "./OrderTimeline";
 import ShippingAddress from "./ShippingAddress";
-import { Order, statusColors, formatDate } from "../types";
+import { Order, statusColors, formatDate, getEstimatedDeliveryMessage } from "../types";
+import { ArrowLeft, ExternalLink, Printer } from "lucide-react";
 
 interface OrderDetailsCardProps {
   order: Order;
   showSummary?: boolean;
   showContinueShopping?: boolean;
+  showBackButton?: boolean;
 }
 
 const OrderDetailsCard = ({ 
   order, 
   showSummary = false,
-  showContinueShopping = false 
+  showContinueShopping = false,
+  showBackButton = false
 }: OrderDetailsCardProps) => {
   const navigate = useNavigate();
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const goToCarrierWebsite = () => {
+    if (order.tracking_number && order.shipping_carrier) {
+      let trackingUrl = "";
+      
+      // Simple mapping for common carriers
+      switch(order.shipping_carrier.toLowerCase()) {
+        case "ups":
+          trackingUrl = `https://www.ups.com/track?tracknum=${order.tracking_number}`;
+          break;
+        case "fedex":
+          trackingUrl = `https://www.fedex.com/fedextrack/?trknbr=${order.tracking_number}`;
+          break;
+        case "usps":
+          trackingUrl = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${order.tracking_number}`;
+          break;
+        case "dhl":
+          trackingUrl = `https://www.dhl.com/en/express/tracking.html?AWB=${order.tracking_number}`;
+          break;
+        default:
+          // Generic tracking URL or fallback
+          trackingUrl = `https://www.google.com/search?q=${order.shipping_carrier}+tracking+${order.tracking_number}`;
+      }
+      
+      window.open(trackingUrl, "_blank");
+    }
+  };
+
   return (
-    <Card>
+    <Card className="print:shadow-none">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>Order #{order.id.slice(0, 8)}</CardTitle>
+            <CardTitle className="flex items-center">
+              {showBackButton && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mr-2" 
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+              )}
+              Order #{order.id.slice(0, 8)}
+            </CardTitle>
             <CardDescription>
               Placed on {formatDate(order.created_at)}
             </CardDescription>
@@ -45,27 +92,73 @@ const OrderDetailsCard = ({
             <ShippingAddress order={order} />
             
             {showSummary && (
-              <div>
+              <div className="border rounded-lg p-4">
                 <h3 className="font-medium mb-2">Order Summary</h3>
-                <div className="text-sm text-gray-600">
-                  <p>Total Amount: ${order.total_amount.toFixed(2)}</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span>${order.total_amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Shipping:</span>
+                    <span>FREE</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Tax:</span>
+                    <span>Included</span>
+                  </div>
+                  <div className="border-t pt-2 mt-2 flex justify-between font-medium">
+                    <span>Total:</span>
+                    <span>${order.total_amount.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
           
-          {showContinueShopping && (
-            <div className="text-center">
+          {/* Tracking and Delivery Information */}
+          {order.tracking_number && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium mb-2">Tracking Information</h3>
+              <p className="text-sm mb-2">
+                Tracking Number: <span className="font-mono">{order.tracking_number}</span>
+                {order.shipping_carrier && ` (${order.shipping_carrier})`}
+              </p>
+              <p className="text-sm mb-3">{getEstimatedDeliveryMessage(order)}</p>
+              
               <Button 
                 variant="outline" 
-                onClick={() => navigate("/")}
+                size="sm" 
+                onClick={goToCarrierWebsite}
+                className="mr-2"
               >
-                Continue Shopping
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Track Package
               </Button>
             </div>
           )}
         </div>
       </CardContent>
+      
+      <CardFooter className="flex justify-between border-t pt-4">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={handlePrint}
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print
+        </Button>
+        
+        {showContinueShopping && (
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/")}
+          >
+            Continue Shopping
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 };
