@@ -7,8 +7,6 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { Loading } from "@/components/ui/loading";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AdminRoute } from "@/components/AdminRoute";
-import { SuperAdminRoute } from "@/components/SuperAdminRoute";
 
 // Lazily load page components
 const Index = lazy(() => import("@/pages/Index"));
@@ -21,7 +19,6 @@ const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const Search = lazy(() => import("@/pages/Search"));
 const Checkout = lazy(() => import("@/pages/Checkout"));
 const Orders = lazy(() => import("@/pages/Orders"));
-const OrderTracking = lazy(() => import("@/pages/order-tracking"));
 
 function App() {
   return (
@@ -35,9 +32,18 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/search" element={<Search />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/track-order" element={<OrderTracking />} />
+                
+                <Route path="/cart" element={
+                  <ProtectedRoute>
+                    <Cart />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/checkout" element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                } />
                 
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
@@ -46,15 +52,9 @@ function App() {
                 } />
                 
                 <Route path="/admin" element={
-                  <AdminRoute>
+                  <ProtectedRoute>
                     <AdminDashboard />
-                  </AdminRoute>
-                } />
-
-                <Route path="/super-admin" element={
-                  <SuperAdminRoute>
-                    <AdminDashboard />
-                  </SuperAdminRoute>
+                  </ProtectedRoute>
                 } />
                 
                 <Route path="/orders" element={
