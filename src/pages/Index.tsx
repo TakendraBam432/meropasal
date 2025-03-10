@@ -4,6 +4,7 @@ import NavBar from "@/components/NavBar";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const FEATURED_PRODUCTS = [
   {
@@ -60,17 +61,40 @@ const DEALS = [
   "⏰ Last Chance! Summer Collection Clearance Sale Ends Soon"
 ];
 
+const SHOWCASE_IMAGES = [
+  "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80",
+  "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=1200&q=80",
+  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80",
+  "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=1200&q=80"
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const [currentDealIndex, setCurrentDealIndex] = useState(0);
+  const [showcaseIndex, setShowcaseIndex] = useState(0);
   
   useEffect(() => {
-    const interval = setInterval(() => {
+    const dealInterval = setInterval(() => {
       setCurrentDealIndex((prevIndex) => (prevIndex + 1) % DEALS.length);
     }, 3000);
     
-    return () => clearInterval(interval);
+    const showcaseInterval = setInterval(() => {
+      setShowcaseIndex((prevIndex) => (prevIndex + 1) % SHOWCASE_IMAGES.length);
+    }, 5000);
+    
+    return () => {
+      clearInterval(dealInterval);
+      clearInterval(showcaseInterval);
+    };
   }, []);
+  
+  const nextShowcase = () => {
+    setShowcaseIndex((prevIndex) => (prevIndex + 1) % SHOWCASE_IMAGES.length);
+  };
+  
+  const prevShowcase = () => {
+    setShowcaseIndex((prevIndex) => (prevIndex - 1 + SHOWCASE_IMAGES.length) % SHOWCASE_IMAGES.length);
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -83,27 +107,58 @@ const Index = () => {
         </div>
       </div>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        {/* Hero Section */}
-        <section className="mb-8 sm:mb-12 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-2xl sm:text-4xl font-bold mb-4">Premium Products, Direct to You</h1>
-            <p className="text-sm sm:text-lg text-gray-600 mb-6">
-              Quality products sourced globally at competitive prices. No middleman, no markup.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' })}>
-                Shop Now
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-                Join Us
-              </Button>
-            </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Image Showcase */}
+        <section className="mb-8 relative overflow-hidden rounded-xl shadow-lg">
+          <div className="relative h-[200px] sm:h-[300px] md:h-[400px] w-full overflow-hidden">
+            {SHOWCASE_IMAGES.map((img, index) => (
+              <div 
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === showcaseIndex ? 'opacity-100' : 'opacity-0'}`}
+              >
+                <img 
+                  src={img} 
+                  alt={`Showcase ${index + 1}`} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end">
+                  <div className="p-4 sm:p-6 text-white">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">New Arrivals</h2>
+                    <p className="text-sm sm:text-base mb-4 max-w-md">Discover the latest trending products at unbeatable prices</p>
+                    <Button onClick={() => document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' })}>
+                      Shop Now
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button 
+            onClick={prevShowcase}
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-2 rounded-full"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button 
+            onClick={nextShowcase}
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-2 rounded-full"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+          {/* Dots indicator */}
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {SHOWCASE_IMAGES.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setShowcaseIndex(index)}
+                className={`w-2 h-2 rounded-full ${index === showcaseIndex ? 'bg-white' : 'bg-white/50'}`}
+              />
+            ))}
           </div>
         </section>
 
         {/* Categories Section */}
-        <section className="mb-10">
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Shop by Category</h2>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
             {CATEGORIES.map((category, index) => (
