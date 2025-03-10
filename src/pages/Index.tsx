@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import NavBar from "@/components/NavBar";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -52,12 +53,36 @@ const CATEGORIES = [
   { name: "Toys", icon: "🧸" }
 ];
 
+const DEALS = [
+  "🔥 Flash Sale! 50% OFF on all Electronics - Today Only!",
+  "🚚 Free Shipping on Orders over $50 - Limited Time!",
+  "🎁 Buy One Get One Free on Selected Items!",
+  "⏰ Last Chance! Summer Collection Clearance Sale Ends Soon"
+];
+
 const Index = () => {
   const navigate = useNavigate();
+  const [currentDealIndex, setCurrentDealIndex] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDealIndex((prevIndex) => (prevIndex + 1) % DEALS.length);
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <NavBar />
+      
+      {/* Deals Slider */}
+      <div className="bg-primary text-white py-2 text-center overflow-hidden">
+        <div className="animate-pulse">
+          {DEALS[currentDealIndex]}
+        </div>
+      </div>
+      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         {/* Hero Section */}
         <section className="mb-8 sm:mb-12 text-center">
@@ -93,33 +118,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Value Propositions */}
-        <section className="mb-8 sm:mb-12 hidden sm:block">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center text-center p-4 rounded-lg bg-white shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M5 22h14"></path><path d="M5 2h14"></path><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path></svg>
-              </div>
-              <h3 className="text-lg font-medium mb-2">Fast Delivery</h3>
-              <p className="text-gray-600 text-sm">Quick shipping directly from our partners to your doorstep</p>
-            </div>
-            <div className="flex flex-col items-center text-center p-4 rounded-lg bg-white shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
-              </div>
-              <h3 className="text-lg font-medium mb-2">Quality Guaranteed</h3>
-              <p className="text-gray-600 text-sm">We source only the best products from trusted suppliers</p>
-            </div>
-            <div className="flex flex-col items-center text-center p-4 rounded-lg bg-white shadow-sm">
-              <div className="rounded-full bg-primary/10 p-3 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 1v3"></path><path d="M12 20v3"></path><path d="M4.93 4.93l2.12 2.12"></path><path d="M16.95 16.95l2.12 2.12"></path><path d="M1 12h3"></path><path d="M20 12h3"></path><path d="M4.93 19.07l2.12-2.12"></path><path d="M16.95 7.05l2.12-2.12"></path></svg>
-              </div>
-              <h3 className="text-lg font-medium mb-2">24/7 Support</h3>
-              <p className="text-gray-600 text-sm">Our customer service team is always ready to assist you</p>
-            </div>
-          </div>
-        </section>
-
         {/* Featured Products */}
         <section id="featured-products">
           <h2 className="text-xl font-semibold mb-4">Featured Products</h2>
@@ -135,7 +133,7 @@ const Index = () => {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <Button>View All Products</Button>
+            <Button onClick={() => navigate("/search")}>View All Products</Button>
           </div>
         </section>
       </main>
