@@ -43,6 +43,15 @@ const FEATURED_PRODUCTS = [
   },
 ];
 
+const CATEGORIES = [
+  { name: "Electronics", icon: "💻" },
+  { name: "Fashion", icon: "👕" },
+  { name: "Home & Garden", icon: "🏡" },
+  { name: "Sports", icon: "🏀" },
+  { name: "Beauty", icon: "💄" },
+  { name: "Toys", icon: "🧸" }
+];
+
 const Index = () => {
   const navigate = useNavigate();
   
@@ -51,10 +60,10 @@ const Index = () => {
       <NavBar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         {/* Hero Section */}
-        <section className="mb-8 sm:mb-16 text-center">
+        <section className="mb-8 sm:mb-12 text-center">
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-4">Premium Products, Direct to You</h1>
-            <p className="text-base sm:text-lg text-gray-600 mb-6">
+            <h1 className="text-2xl sm:text-4xl font-bold mb-4">Premium Products, Direct to You</h1>
+            <p className="text-sm sm:text-lg text-gray-600 mb-6">
               Quality products sourced globally at competitive prices. No middleman, no markup.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -68,8 +77,24 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Categories Section */}
+        <section className="mb-10">
+          <h2 className="text-xl font-semibold mb-4">Shop by Category</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
+            {CATEGORIES.map((category, index) => (
+              <div 
+                key={index} 
+                className="flex flex-col items-center justify-center p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-100 cursor-pointer"
+              >
+                <span className="text-2xl mb-1">{category.icon}</span>
+                <span className="text-xs sm:text-sm font-medium text-center">{category.name}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Value Propositions */}
-        <section className="mb-8 sm:mb-16">
+        <section className="mb-8 sm:mb-12 hidden sm:block">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col items-center text-center p-4 rounded-lg bg-white shadow-sm">
               <div className="rounded-full bg-primary/10 p-3 mb-3">
@@ -97,8 +122,8 @@ const Index = () => {
 
         {/* Featured Products */}
         <section id="featured-products">
-          <h2 className="text-2xl font-semibold mb-6">Featured Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-xl font-semibold mb-4">Featured Products</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {FEATURED_PRODUCTS.map((product) => (
               <ProductCard
                 key={product.id}
@@ -108,6 +133,9 @@ const Index = () => {
                 image={product.image}
               />
             ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Button>View All Products</Button>
           </div>
         </section>
       </main>

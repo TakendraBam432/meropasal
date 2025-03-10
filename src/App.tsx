@@ -19,6 +19,7 @@ const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const Search = lazy(() => import("@/pages/Search"));
 const Checkout = lazy(() => import("@/pages/Checkout"));
 const Orders = lazy(() => import("@/pages/Orders"));
+const ProductDetails = lazy(() => import("@/pages/ProductDetails"));
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/search" element={<Search />} />
+                <Route path="/product/:id" element={<ProductDetails />} />
                 
                 <Route path="/cart" element={
                   <ProtectedRoute>
