@@ -8,10 +8,10 @@ import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const Cart = () => {
-  const { state, updateQuantity, removeItem, clearCart } = useCart();
+  const { state, updateQuantity, removeItem } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleQuantityChange = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -26,7 +26,7 @@ const Cart = () => {
     });
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (state.items.length === 0) {
       toast({
         variant: "destructive",
@@ -35,10 +35,8 @@ const Cart = () => {
       });
       return;
     }
-    setLoading(true);
-    // Navigate to checkout page
+    setIsProcessing(true);
     navigate("/checkout");
-    setLoading(false);
   };
 
   return (
@@ -71,6 +69,7 @@ const Cart = () => {
                   src={item.image}
                   alt={item.title}
                   className="w-full sm:w-24 h-24 object-cover rounded"
+                  loading="eager"
                 />
                 <div className="flex-1">
                   <h3 className="font-medium mb-1">{item.title}</h3>
@@ -90,7 +89,7 @@ const Cart = () => {
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
-                        handleQuantityChange(item.id, parseInt(e.target.value))
+                        handleQuantityChange(item.id, parseInt(e.target.value) || 1)
                       }
                       className="w-16 text-center"
                     />
@@ -144,7 +143,7 @@ const Cart = () => {
               <Button
                 className="w-full mb-2"
                 onClick={handleCheckout}
-                disabled={loading || state.items.length === 0}
+                disabled={isProcessing || state.items.length === 0}
               >
                 Proceed to Checkout
               </Button>

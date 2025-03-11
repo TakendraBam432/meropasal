@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
-import { Loading } from "@/components/ui/loading";
 import { useQuery } from "@tanstack/react-query";
 
 interface Product {
@@ -25,7 +24,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Use React Query for data fetching with caching
+  // Use React Query for data fetching with caching and optimized settings
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['userProducts', user?.id],
     queryFn: async () => {
@@ -41,8 +40,11 @@ const Dashboard = () => {
       return data as Product[];
     },
     enabled: !!user?.id,
-    staleTime: 30000, // 30 seconds
-    refetchOnWindowFocus: false
+    staleTime: 60000, // 60 seconds, increased from 30
+    cacheTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    initialData: [], // Provide initial data to avoid loading state
   });
 
   const handleDeleteProduct = useCallback(async (id: string) => {
@@ -54,7 +56,7 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Refetch data instead of manipulating local state
+      // Optimistically update UI before refetching
       refetch();
       
       toast({
@@ -80,7 +82,7 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Refetch data instead of manipulating local state
+      // Optimistically update UI before refetching
       refetch();
 
       toast({
@@ -119,7 +121,6 @@ const Dashboard = () => {
                   src={product.image_url}
                   alt={product.title}
                   className="object-cover w-full h-48"
-                  loading="lazy" // Use lazy loading for images
                 />
               ) : (
                 <div className="flex items-center justify-center h-48 bg-gray-100">
@@ -160,10 +161,7 @@ const Dashboard = () => {
     );
   }, [products, navigate, handleStatusToggle, handleDeleteProduct]);
 
-  if (isLoading) {
-    return <Loading fullScreen size="lg" />;
-  }
-
+  // Show content immediately, no loading spinner
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">

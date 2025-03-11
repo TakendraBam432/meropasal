@@ -50,8 +50,9 @@ export const AuthForm = ({
           return;
         }
         
-        // Redirect immediately after successful login
-        navigate("/");
+        // Reduce delay by setting user directly in local storage
+        localStorage.setItem('auth', 'true');
+        navigate("/", { replace: true });
       } else {
         const { error, data } = await supabase.auth.signUp({
           email,
