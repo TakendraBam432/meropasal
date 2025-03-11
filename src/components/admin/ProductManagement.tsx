@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -208,7 +207,7 @@ const ProductManagement = () => {
             stock: parseInt(productStock),
             category: productCategory || null,
             image_url: imageUrl,
-            updated_at: new Date()
+            updated_at: new Date().toISOString() // Fixed line
           })
           .eq('id', selectedProduct.id);
 

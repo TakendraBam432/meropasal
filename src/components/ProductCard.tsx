@@ -25,8 +25,13 @@ const ProductCard = ({ id, title, price, image }: ProductCardProps) => {
           src={image}
           alt={title}
           className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+            <p className="text-white text-xs font-medium text-center">View Details</p>
+          </div>
+        </div>
       </div>
       <div className="p-3 flex flex-col flex-grow">
         <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-1">

@@ -104,10 +104,10 @@ const Index = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end">
                   <div className="p-4 sm:p-6 text-white">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">New Arrivals</h2>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">Shop Now</h2>
                     <p className="text-sm sm:text-base mb-4 max-w-md">Discover the latest trending products at unbeatable prices</p>
                     <Button onClick={() => document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' })}>
-                      Shop Now
+                      View Products
                     </Button>
                   </div>
                 </div>
