@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import NavBar from "@/components/NavBar";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -46,19 +47,12 @@ const FEATURED_PRODUCTS = [
 ];
 
 const CATEGORIES = [
-  { name: "Electronics", icon: "💻" },
-  { name: "Fashion", icon: "👕" },
-  { name: "Home & Garden", icon: "🏡" },
-  { name: "Sports", icon: "🏀" },
-  { name: "Beauty", icon: "💄" },
-  { name: "Toys", icon: "🧸" }
-];
-
-const DEALS = [
-  "🔥 Flash Sale! 50% OFF on all Electronics - Today Only!",
-  "🚚 Free Shipping on Orders over $50 - Limited Time!",
-  "🎁 Buy One Get One Free on Selected Items!",
-  "⏰ Last Chance! Summer Collection Clearance Sale Ends Soon"
+  { name: "Electronics", icon: "💻", path: "/search?category=electronics" },
+  { name: "Fashion", icon: "👕", path: "/search?category=fashion" },
+  { name: "Home & Garden", icon: "🏡", path: "/search?category=home-garden" },
+  { name: "Sports", icon: "🏀", path: "/search?category=sports" },
+  { name: "Beauty", icon: "💄", path: "/search?category=beauty" },
+  { name: "Toys", icon: "🧸", path: "/search?category=toys" }
 ];
 
 const SHOWCASE_IMAGES = [
@@ -70,20 +64,14 @@ const SHOWCASE_IMAGES = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const [currentDealIndex, setCurrentDealIndex] = useState(0);
   const [showcaseIndex, setShowcaseIndex] = useState(0);
   
   useEffect(() => {
-    const dealInterval = setInterval(() => {
-      setCurrentDealIndex((prevIndex) => (prevIndex + 1) % DEALS.length);
-    }, 3000);
-    
     const showcaseInterval = setInterval(() => {
       setShowcaseIndex((prevIndex) => (prevIndex + 1) % SHOWCASE_IMAGES.length);
     }, 5000);
     
     return () => {
-      clearInterval(dealInterval);
       clearInterval(showcaseInterval);
     };
   }, []);
@@ -99,13 +87,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <NavBar />
-      
-      {/* Deals Slider */}
-      <div className="bg-primary text-white py-2 text-center overflow-hidden">
-        <div className="animate-pulse">
-          {DEALS[currentDealIndex]}
-        </div>
-      </div>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Image Showcase */}
@@ -162,13 +143,14 @@ const Index = () => {
           <h2 className="text-xl font-semibold mb-4">Shop by Category</h2>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
             {CATEGORIES.map((category, index) => (
-              <div 
+              <Link 
                 key={index} 
+                to={category.path}
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-100 cursor-pointer"
               >
                 <span className="text-2xl mb-1">{category.icon}</span>
                 <span className="text-xs sm:text-sm font-medium text-center">{category.name}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

@@ -26,11 +26,7 @@ const ProductCard = ({ id, title, price, image }: ProductCardProps) => {
           alt={title}
           className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
-          <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium transition-opacity duration-300 bg-primary px-3 py-1 rounded-full transform -translate-y-2 group-hover:translate-y-0">
-            View Details
-          </span>
-        </div>
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
       </div>
       <div className="p-3 flex flex-col flex-grow">
         <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-1">
