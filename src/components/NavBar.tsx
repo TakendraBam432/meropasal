@@ -20,9 +20,8 @@ import {
   ShoppingCart, 
   User, 
   Menu, 
-  X,
-  Package,
-  Home
+  Home,
+  Package
 } from "lucide-react";
 import {
   Sheet,
@@ -36,8 +35,6 @@ const NavBar = () => {
   const { state } = useCart();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -57,21 +54,18 @@ const NavBar = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      if (isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-      }
     }
   };
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // Immediately navigate to prevent waiting
+    // Clear user data locally first for immediate UI feedback
+    localStorage.removeItem('userData');
+    // Then navigate immediately
     navigate("/auth");
-    
-    // Then perform the signout operation
+    // And perform the actual signout in the background
     try {
-      console.log("Initiating sign out...");
       await signOut();
     } catch (error) {
       console.error("Sign out error:", error);
@@ -82,9 +76,9 @@ const NavBar = () => {
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          {/* Search Bar (now in the center) */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-md">
-            <div className="relative w-full">
+          {/* Search Bar (in the center) */}
+          <div className="flex-1 max-w-md">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Input
                 type="text"
                 placeholder="Search products..."
@@ -98,23 +92,19 @@ const NavBar = () => {
               >
                 <SearchIcon className="h-5 w-5 text-gray-400" />
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4 ml-4">
             <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900">
               <Home className="h-5 w-5 mr-1" />
               <span>Home</span>
             </Link>
             
-            <Link to="/track-order" className="flex items-center text-gray-700 hover:text-gray-900">
-              <Package className="h-5 w-5 mr-1" />
-              <span>Track Order</span>
-            </Link>
-            
             <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 relative">
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5 mr-1" />
+              <span>Cart</span>
               {state.items.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {state.items.length}
@@ -166,15 +156,6 @@ const NavBar = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
-            <Link to="/cart" className="mr-4 relative">
-              <ShoppingCart className="h-6 w-6" />
-              {state.items.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {state.items.length}
-                </span>
-              )}
-            </Link>
-            
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -183,38 +164,12 @@ const NavBar = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[80%] sm:w-[350px] p-0">
                 <div className="flex flex-col h-full">
-                  {/* Mobile Search */}
-                  <div className="p-4 border-b">
-                    <form onSubmit={handleSearch} className="relative">
-                      <Input
-                        type="text"
-                        placeholder="Search products..."
-                        className="w-full pr-10"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                      >
-                        <SearchIcon className="h-5 w-5 text-gray-400" />
-                      </button>
-                    </form>
-                  </div>
-
                   {/* Mobile Navigation */}
                   <div className="flex-1 overflow-auto py-4">
                     <SheetClose asChild>
                       <Link to="/" className="flex items-center p-4 hover:bg-gray-100">
                         <Home className="h-5 w-5 mr-3" />
                         <span className="font-medium">Home</span>
-                      </Link>
-                    </SheetClose>
-                    
-                    <SheetClose asChild>
-                      <Link to="/track-order" className="flex items-center p-4 hover:bg-gray-100">
-                        <Package className="h-5 w-5 mr-3" />
-                        <span className="font-medium">Track Order</span>
                       </Link>
                     </SheetClose>
                     

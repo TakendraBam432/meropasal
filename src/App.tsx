@@ -4,10 +4,9 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/auth";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
-import { Loading } from "@/components/ui/loading";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-// Import page components directly instead of lazy loading
+// Import page components directly
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Auth from "@/pages/Auth";

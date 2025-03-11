@@ -115,7 +115,7 @@ export const AuthForm = ({
             type="button"
             variant="link"
             className="p-0 h-auto"
-            onClick={() => navigate("/auth/reset-password")}
+            onClick={() => navigate("/reset-password")}
           >
             Forgot password?
           </Button>

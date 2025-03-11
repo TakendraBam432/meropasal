@@ -1,3 +1,4 @@
+
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -11,7 +12,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
 } from "@/components/ui/card";
 import {
   Table,
@@ -207,7 +207,7 @@ const ProductManagement = () => {
             stock: parseInt(productStock),
             category: productCategory || null,
             image_url: imageUrl,
-            updated_at: new Date().toISOString() // Fixed line
+            updated_at: new Date().toISOString()
           })
           .eq('id', selectedProduct.id);
 
@@ -315,22 +315,35 @@ const ProductManagement = () => {
       <div className="grid w-full gap-1.5">
         <label htmlFor="image">Product Image</label>
         <div className="flex items-center gap-4">
-          <Input
-            id="image"
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="flex-1"
-          />
-          {imagePreview && (
-            <div className="w-16 h-16 relative border rounded overflow-hidden">
+          <div className="flex-1">
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="cursor-pointer"
+            />
+            <p className="text-xs text-gray-500 mt-1">Recommended size: 800x800px</p>
+          </div>
+          {imagePreview ? (
+            <div className="w-20 h-20 relative border rounded overflow-hidden">
               <img 
                 src={imagePreview} 
                 alt="Preview" 
                 className="w-full h-full object-cover"
               />
+              <button
+                type="button"
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-bl p-1 text-xs"
+                onClick={() => {
+                  setImagePreview(null);
+                  setProductImage(null);
+                }}
+              >
+                ✕
+              </button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
@@ -368,7 +381,7 @@ const ProductManagement = () => {
                   Add Product
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
                   <DialogDescription>
@@ -408,16 +421,17 @@ const ProductManagement = () => {
                   <TableRow key={product.id}>
                     <TableCell>
                       {product.image_url ? (
-                        <div className="w-10 h-10 rounded overflow-hidden">
+                        <div className="w-12 h-12 rounded overflow-hidden">
                           <img 
                             src={product.image_url} 
                             alt={product.title} 
                             className="w-full h-full object-cover"
+                            loading="eager"
                           />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                          <ImageIcon className="h-4 w-4 text-gray-400" />
+                        <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-gray-400" />
                         </div>
                       )}
                     </TableCell>
@@ -451,7 +465,7 @@ const ProductManagement = () => {
 
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>
