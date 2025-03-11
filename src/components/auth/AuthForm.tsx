@@ -49,6 +49,8 @@ export const AuthForm = ({
           });
           return;
         }
+        
+        // Redirect immediately after successful login
         navigate("/");
       } else {
         const { error, data } = await supabase.auth.signUp({

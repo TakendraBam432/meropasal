@@ -65,16 +65,16 @@ const NavBar = () => {
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isSigningOut) return;
     
+    // Immediately navigate to prevent waiting
+    navigate("/auth");
+    
+    // Then perform the signout operation
     try {
-      setIsSigningOut(true);
       console.log("Initiating sign out...");
       await signOut();
     } catch (error) {
       console.error("Sign out error:", error);
-    } finally {
-      setIsSigningOut(false);
     }
   };
 
@@ -82,13 +82,8 @@ const NavBar = () => {
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link to="/" className="font-bold text-2xl">
-            MeroPasal
-          </Link>
-
-          {/* Desktop Search */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-4">
+          {/* Search Bar (now in the center) */}
+          <form onSubmit={handleSearch} className="flex-1 max-w-md">
             <div className="relative w-full">
               <Input
                 type="text"
@@ -157,8 +152,8 @@ const NavBar = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut}>
-                    {isSigningOut ? "Signing out..." : "Log out"}
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -275,8 +270,8 @@ const NavBar = () => {
                               </Button>
                             </SheetClose>
                           )}
-                          <Button variant="destructive" className="w-full" onClick={handleSignOut} disabled={isSigningOut}>
-                            {isSigningOut ? "Signing out..." : "Log out"}
+                          <Button variant="destructive" className="w-full" onClick={handleSignOut}>
+                            Log out
                           </Button>
                         </div>
                       </div>
