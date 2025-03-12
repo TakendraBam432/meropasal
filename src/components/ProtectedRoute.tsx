@@ -2,7 +2,7 @@
 import { useEffect, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
-import { Loader } from "@/components/ui/loading";
+import { Loading } from "@/components/ui/loading";
 
 export const ProtectedRoute = memo(({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -22,7 +22,7 @@ export const ProtectedRoute = memo(({ children }: { children: React.ReactNode })
   if (loading && isAuthorized === null) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Loader size="lg" />
+        <Loading size="lg" />
       </div>
     );
   }

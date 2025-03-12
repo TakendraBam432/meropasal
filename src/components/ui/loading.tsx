@@ -34,3 +34,6 @@ export const Loading = ({
     </div>
   );
 };
+
+// Add an alias for backward compatibility
+export const Loader = Loading;

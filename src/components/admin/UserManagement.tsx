@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 
 interface UserData {
   id: string;
@@ -20,43 +21,33 @@ interface UserData {
   is_super_admin: boolean;
 }
 
-interface UserManagementProps {
-  initialUsers?: UserData[]; // Made optional with ? operator
-}
-
-const UserManagement = ({ initialUsers = [] }: UserManagementProps) => {
-  const [users, setUsers] = useState<UserData[]>(initialUsers);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+const UserManagement = () => {
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Optimized fetch function with error handling and loading states
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoadingUsers(true);
+  // Use React Query for better data fetching and caching
+  const { data: users = [], isLoading: loadingUsers, refetch } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, is_admin, is_super_admin');
 
       if (error) throw error;
 
-      const usersWithEmail = data.map(user => ({
+      return data.map(user => ({
         ...user,
         email: `User-${user.id.substring(0, 8)}`,
-      }));
+      })) as UserData[];
+    },
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false,
+  });
 
-      setUsers(usersWithEmail as UserData[]);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        variant: "destructive",
-        title: "Error fetching users",
-        description: "There was an error fetching the user list."
-      });
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, [toast]);
+  // Load users on mount
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Optimized handler with better loading states
   const handleMakeAdmin = async (userId: string) => {
@@ -70,18 +61,13 @@ const UserManagement = ({ initialUsers = [] }: UserManagementProps) => {
 
       if (error) throw error;
 
-      // Update local state instead of fetching again
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, is_admin: true } : user
-        )
-      );
+      await refetch();
 
       toast({
         title: "User promoted",
         description: "User has been granted admin privileges"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error promoting user:", error);
       toast({
         variant: "destructive",
@@ -105,18 +91,13 @@ const UserManagement = ({ initialUsers = [] }: UserManagementProps) => {
 
       if (error) throw error;
 
-      // Update local state instead of fetching again
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, is_admin: true, is_super_admin: true } : user
-        )
-      );
+      await refetch();
 
       toast({
         title: "User promoted",
         description: "User has been granted super admin privileges"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error promoting user:", error);
       toast({
         variant: "destructive",
@@ -139,7 +120,7 @@ const UserManagement = ({ initialUsers = [] }: UserManagementProps) => {
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={fetchUsers} 
+            onClick={() => refetch()} 
             disabled={loadingUsers}
           >
             <RefreshCw className={`h-4 w-4 ${loadingUsers ? 'animate-spin' : ''}`} />

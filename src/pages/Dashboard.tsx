@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { useQuery } from "@tanstack/react-query";
-import { Loader } from "@/components/ui/loading";
+import { Loading } from "@/components/ui/loading";
 
 interface Product {
   id: string;
@@ -102,7 +102,7 @@ const Dashboard = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center items-center py-12">
-          <Loader size="lg" />
+          <Loading size="lg" />
         </div>
       );
     }

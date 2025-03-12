@@ -7,7 +7,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import ProductManagement from "@/components/admin/ProductManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader } from "@/components/ui/loading";
+import { Loading } from "@/components/ui/loading";
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
         <TabsContent value="overview">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <Loader size="lg" />
+              <Loading size="lg" />
             </div>
           ) : (
             <>
