@@ -2,6 +2,7 @@
 import { useEffect, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
+import { Loader } from "@/components/ui/loading";
 
 export const ProtectedRoute = memo(({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -9,10 +10,8 @@ export const ProtectedRoute = memo(({ children }: { children: React.ReactNode })
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Optimize authorization check to be more responsive
     if (!loading) {
       if (!user) {
-        // Redirect immediately if no user
         navigate("/auth", { replace: true });
       } else {
         setIsAuthorized(true);
@@ -20,12 +19,14 @@ export const ProtectedRoute = memo(({ children }: { children: React.ReactNode })
     }
   }, [user, loading, navigate]);
 
-  // Skip rendering completely during loading to improve performance
   if (loading && isAuthorized === null) {
-    return null;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader size="lg" />
+      </div>
+    );
   }
 
-  // Return children directly when authorized
   return isAuthorized ? children : null;
 });
 

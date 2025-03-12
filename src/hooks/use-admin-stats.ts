@@ -28,9 +28,9 @@ export function useAdminStats() {
   return useQuery({
     queryKey: ['adminStats'],
     queryFn: fetchStats,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime which is deprecated)
-    initialData: { totalUsers: 0, totalOrders: 0, totalProducts: 0 }, // Initialize with data to avoid loading state
-    refetchOnWindowFocus: false
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 }

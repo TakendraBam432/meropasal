@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { useQuery } from "@tanstack/react-query";
+import { Loader } from "@/components/ui/loading";
 
 interface Product {
   id: string;
@@ -39,11 +41,9 @@ const Dashboard = () => {
       return data as Product[];
     },
     enabled: !!user?.id,
-    staleTime: 60000, // 60 seconds
-    gcTime: 300000, // 5 minutes (renamed from cacheTime which is deprecated)
+    staleTime: 30000, // 30 seconds
+    gcTime: 300000, // 5 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    initialData: [] // Provide initial data to avoid loading state
   });
 
   const handleDeleteProduct = useCallback(async (id: string) => {
@@ -99,6 +99,14 @@ const Dashboard = () => {
 
   // Memoize the product grid to prevent unnecessary re-renders
   const productGrid = useMemo(() => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <Loader size="lg" />
+        </div>
+      );
+    }
+    
     if (products.length === 0) {
       return (
         <div className="text-center py-12">
@@ -112,7 +120,7 @@ const Dashboard = () => {
         {products.map((product) => (
           <div
             key={product.id}
-            className="border rounded-lg overflow-hidden shadow-sm"
+            className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="aspect-w-16 aspect-h-9 bg-gray-100">
               {product.image_url ? (
@@ -120,6 +128,7 @@ const Dashboard = () => {
                   src={product.image_url}
                   alt={product.title}
                   className="object-cover w-full h-48"
+                  loading="lazy"
                 />
               ) : (
                 <div className="flex items-center justify-center h-48 bg-gray-100">
@@ -158,9 +167,8 @@ const Dashboard = () => {
         ))}
       </div>
     );
-  }, [products, navigate, handleDeleteProduct, handleStatusToggle]);
+  }, [products, navigate, handleDeleteProduct, handleStatusToggle, isLoading]);
 
-  // Show content immediately, no loading spinner
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
