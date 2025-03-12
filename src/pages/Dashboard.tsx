@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +23,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Use React Query for data fetching with caching and optimized settings
+  // Use React Query for data fetching with optimized settings
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['userProducts', user?.id],
     queryFn: async () => {
@@ -40,11 +39,11 @@ const Dashboard = () => {
       return data as Product[];
     },
     enabled: !!user?.id,
-    staleTime: 60000, // 60 seconds, increased from 30
-    cacheTime: 300000, // 5 minutes
+    staleTime: 60000, // 60 seconds
+    gcTime: 300000, // 5 minutes (renamed from cacheTime which is deprecated)
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    initialData: [], // Provide initial data to avoid loading state
+    initialData: [] // Provide initial data to avoid loading state
   });
 
   const handleDeleteProduct = useCallback(async (id: string) => {
@@ -159,7 +158,7 @@ const Dashboard = () => {
         ))}
       </div>
     );
-  }, [products, navigate, handleStatusToggle, handleDeleteProduct]);
+  }, [products, navigate, handleDeleteProduct, handleStatusToggle]);
 
   // Show content immediately, no loading spinner
   return (
