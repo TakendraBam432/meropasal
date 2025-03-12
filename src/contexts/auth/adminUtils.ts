@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const setAsSuperAdmin = async (userId: string) => {
   try {
+    // Make sure user is also set as admin when becoming super admin
     const { error } = await supabase
       .from("profiles")
-      .update({ is_super_admin: true })
+      .update({ is_admin: true, is_super_admin: true })
       .eq("id", userId);
 
     if (error) {
