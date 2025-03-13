@@ -1,12 +1,12 @@
 
-import React from "react";
+import React, { memo } from "react";
 
 interface LoadingProps {
   size?: "sm" | "md" | "lg";
   fullScreen?: boolean;
 }
 
-export const Loading = ({ 
+export const Loading = memo(({ 
   size = "md", 
   fullScreen = false 
 }: LoadingProps) => {
@@ -33,7 +33,9 @@ export const Loading = ({
       {spinner}
     </div>
   );
-};
+});
+
+Loading.displayName = "Loading";
 
 // Add an alias for backward compatibility
 export const Loader = Loading;

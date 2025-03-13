@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { UserData } from "./types";
@@ -8,13 +9,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { UserTable } from "./UserTable";
 
 export const UserManagementCard = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
+  // Use React Query for data fetching with optimized caching
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, email:auth.users(email), full_name, is_admin, is_super_admin")
@@ -23,32 +24,23 @@ export const UserManagementCard = () => {
       if (error) throw error;
 
       // Transform data to match UserData interface
-      const formattedUsers: UserData[] = data.map((user: any) => ({
+      return data.map((user: any) => ({
         id: user.id,
         email: user.email?.[0]?.email || "No email",
         full_name: user.full_name,
         is_admin: user.is_admin,
         is_super_admin: user.is_super_admin,
       }));
+    },
+    // Optimize with caching settings
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    gcTime: 1000 * 60 * 10,   // 10 minutes garbage collection
+    retry: 1,
+  });
 
-      setUsers(formattedUsers);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error fetching users",
-        description: error.message,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const toggleUserRole = async (userId: string, role: "admin" | "super_admin", value: boolean) => {
-    try {
+  // Role toggle mutation
+  const toggleRoleMutation = useMutation({
+    mutationFn: async ({ userId, role, value }: { userId: string, role: "admin" | "super_admin", value: boolean }) => {
       const updateData = role === "admin" 
         ? { is_admin: value } 
         : { is_super_admin: value };
@@ -59,46 +51,72 @@ export const UserManagementCard = () => {
         .eq("id", userId);
 
       if (error) throw error;
-
-      // Refresh user list
-      fetchUsers();
-      
+      return { userId, role, value };
+    },
+    onSuccess: () => {
       toast({
         title: "User updated",
-        description: `User role updated successfully.`,
+        description: "User role updated successfully.",
       });
-    } catch (error: any) {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error updating user",
         description: error.message,
       });
     }
-  };
+  });
 
-  const deleteUser = async (userId: string) => {
-    try {
-      // Delete the user from the auth.users table
-      // Note: This requires admin privileges
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
       const { error } = await supabase.auth.admin.deleteUser(userId);
-      
       if (error) throw error;
-      
-      // Refresh user list
-      fetchUsers();
-      
+      return userId;
+    },
+    onSuccess: () => {
       toast({
         title: "User deleted",
         description: "User deleted successfully.",
       });
-    } catch (error: any) {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: () => {
       toast({
         variant: "destructive",
         title: "Error deleting user",
         description: "Only super admins can delete users.",
       });
     }
+  });
+
+  const handleToggleAdmin = (userId: string, value: boolean) => {
+    toggleRoleMutation.mutate({ userId, role: "admin", value });
   };
+
+  const handleToggleSuperAdmin = (userId: string, value: boolean) => {
+    toggleRoleMutation.mutate({ userId, role: "super_admin", value });
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    deleteUserMutation.mutate(userId);
+  };
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-red-500">Error loading users. Please try again.</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -106,16 +124,16 @@ export const UserManagementCard = () => {
         <CardTitle>User Management</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {isLoading || toggleRoleMutation.isPending || deleteUserMutation.isPending ? (
           <div className="flex justify-center py-10">
             <Loading size="lg" />
           </div>
         ) : (
           <UserTable 
             users={users} 
-            onToggleAdmin={(userId, value) => toggleUserRole(userId, "admin", value)}
-            onToggleSuperAdmin={(userId, value) => toggleUserRole(userId, "super_admin", value)}
-            onDeleteUser={deleteUser}
+            onToggleAdmin={handleToggleAdmin}
+            onToggleSuperAdmin={handleToggleSuperAdmin}
+            onDeleteUser={handleDeleteUser}
           />
         )}
       </CardContent>

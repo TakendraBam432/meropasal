@@ -1,4 +1,5 @@
 
+import { memo } from "react";
 import {
   Table,
   TableBody,
@@ -19,7 +20,7 @@ interface UserTableProps {
   onDeleteUser: (userId: string) => void;
 }
 
-export const UserTable = ({
+export const UserTable = memo(({
   users,
   onToggleAdmin,
   onToggleSuperAdmin,
@@ -77,4 +78,6 @@ export const UserTable = ({
       </Table>
     </div>
   );
-};
+});
+
+UserTable.displayName = "UserTable";
