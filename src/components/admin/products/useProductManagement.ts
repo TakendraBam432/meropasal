@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "./types";
 import { toast } from "@/components/ui/use-toast";
@@ -13,7 +13,8 @@ export function useProductManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
-        .select('id, title, price, description, stock, category, image_url');
+        .select('id, title, price, description, stock, category, image_url')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setProducts(data as Product[]);
@@ -29,12 +30,15 @@ export function useProductManagement() {
     }
   }, []);
 
+  // Memoize product data to prevent unnecessary re-renders
+  const memoizedProducts = useMemo(() => products, [products]);
+  
   // Load products on component mount
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
   
-  const handleDeleteProduct = async (productId: string) => {
+  const handleDeleteProduct = useCallback(async (productId: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     
     try {
@@ -59,10 +63,10 @@ export function useProductManagement() {
         description: "Failed to delete product."
       });
     }
-  };
+  }, [fetchProducts]);
 
   return {
-    products,
+    products: memoizedProducts,
     loading,
     fetchProducts,
     handleDeleteProduct

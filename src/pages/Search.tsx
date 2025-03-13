@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import NavBar from "@/components/NavBar";
@@ -26,6 +26,182 @@ interface Product {
   description: string;
 }
 
+// Memoized components for better performance
+const SearchForm = memo(({ 
+  searchQuery, 
+  setSearchQuery, 
+  selectedCategory, 
+  setSelectedCategory,
+  minPrice,
+  setMinPrice,
+  maxPrice,
+  setMaxPrice,
+  categories,
+  onSubmit,
+  onClearFilters
+}: {
+  searchQuery: string,
+  setSearchQuery: (value: string) => void,
+  selectedCategory: string,
+  setSelectedCategory: (value: string) => void,
+  minPrice: string,
+  setMinPrice: (value: string) => void,
+  maxPrice: string,
+  setMaxPrice: (value: string) => void,
+  categories: string[],
+  onSubmit: (e: React.FormEvent) => void,
+  onClearFilters: () => void
+}) => (
+  <form onSubmit={onSubmit} className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label htmlFor="search" className="block text-sm font-medium mb-1">
+          Search
+        </label>
+        <div className="relative">
+          <Input
+            id="search"
+            placeholder="Search by product name, description or category"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <SearchIcon size={16} />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="category" className="block text-sm font-medium mb-1">
+          Category
+        </label>
+        <Select
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+        >
+          <SelectTrigger id="category">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label htmlFor="minPrice" className="block text-sm font-medium mb-1">
+            Min Price
+          </label>
+          <Input
+            id="minPrice"
+            type="number"
+            placeholder="Min"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            min="0"
+          />
+        </div>
+        <div>
+          <label htmlFor="maxPrice" className="block text-sm font-medium mb-1">
+            Max Price
+          </label>
+          <Input
+            id="maxPrice"
+            type="number"
+            placeholder="Max"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            min="0"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div className="flex justify-between">
+      <Button type="submit" className="w-full md:w-auto">
+        Apply Filters
+      </Button>
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={onClearFilters}
+        className="w-full md:w-auto mt-2 md:mt-0"
+      >
+        Clear All
+      </Button>
+    </div>
+  </form>
+));
+
+SearchForm.displayName = "SearchForm";
+
+// Memoized filter badge component
+const FilterBadge = memo(({ 
+  label, 
+  value, 
+  onRemove 
+}: { 
+  label: string, 
+  value: string, 
+  onRemove: () => void 
+}) => (
+  <Badge variant="outline" className="flex items-center gap-1">
+    {label}: {value}
+    <X 
+      className="h-3 w-3 cursor-pointer" 
+      onClick={onRemove} 
+    />
+  </Badge>
+));
+
+FilterBadge.displayName = "FilterBadge";
+
+// Memoized product grid component
+const ProductGrid = memo(({ products }: { products: Product[] }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {products.map((product) => (
+      <ProductCard
+        key={product.id}
+        id={product.id}
+        title={product.title}
+        price={product.price}
+        image={product.image_url || "/placeholder.svg"}
+      />
+    ))}
+  </div>
+));
+
+ProductGrid.displayName = "ProductGrid";
+
+// Memoized loading component
+const LoadingSpinner = memo(() => (
+  <div className="flex justify-center py-20">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+));
+
+LoadingSpinner.displayName = "LoadingSpinner";
+
+// Memoized empty results component
+const EmptyResults = memo(({ onClearFilters }: { onClearFilters: () => void }) => (
+  <div className="text-center py-20">
+    <h2 className="text-2xl font-semibold mb-2">No products found</h2>
+    <p className="text-gray-600 mb-6">
+      Try adjusting your search or filter criteria
+    </p>
+    <Button onClick={onClearFilters}>View All Products</Button>
+  </div>
+));
+
+EmptyResults.displayName = "EmptyResults";
+
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -42,37 +218,13 @@ const Search = () => {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-  }, [query, categoryFilter]);
-
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("category")
-        .not("category", "is", null)
-        .order("category");
-
-      if (error) throw error;
-
-      const uniqueCategories = Array.from(
-        new Set(data.map((item) => item.category))
-      ).filter(Boolean) as string[];
-
-      setCategories(uniqueCategories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-
-  const fetchProducts = async () => {
+  // Optimize data fetching to make it more efficient
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       let productsQuery = supabase
         .from("products")
-        .select("*")
+        .select("id, title, price, image_url, category, description")
         .order("created_at", { ascending: false });
 
       // Apply search filter (search in title, description, and category)
@@ -113,14 +265,42 @@ const Search = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, categoryFilter, searchParams, toast]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("category")
+        .not("category", "is", null)
+        .order("category");
+
+      if (error) throw error;
+
+      const uniqueCategories = Array.from(
+        new Set(data.map((item) => item.category))
+      ).filter(Boolean) as string[];
+
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     updateSearchParams();
-  };
+  }, []);
 
-  const updateSearchParams = () => {
+  const updateSearchParams = useCallback(() => {
     const params = new URLSearchParams();
     
     if (searchQuery.trim()) {
@@ -148,17 +328,17 @@ const Search = () => {
     }
     
     setSearchParams(params);
-  };
+  }, [searchQuery, selectedCategory, minPrice, maxPrice, setSearchParams]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("");
     setMinPrice("");
     setMaxPrice("");
     setSearchParams(new URLSearchParams());
-  };
+  }, [setSearchParams]);
 
-  const removeFilter = (filterName: string) => {
+  const removeFilter = useCallback((filterName: string) => {
     const params = new URLSearchParams(searchParams);
     params.delete(filterName);
     setSearchParams(params);
@@ -167,7 +347,11 @@ const Search = () => {
     if (filterName === "category") setSelectedCategory("");
     if (filterName === "min_price") setMinPrice("");
     if (filterName === "max_price") setMaxPrice("");
-  };
+  }, [searchParams, setSearchParams]);
+
+  const toggleShowFilters = useCallback(() => {
+    setShowFilters(prev => !prev);
+  }, []);
 
   return (
     <div>
@@ -180,7 +364,7 @@ const Search = () => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={toggleShowFilters}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
@@ -189,92 +373,19 @@ const Search = () => {
 
         {showFilters && (
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label htmlFor="search" className="block text-sm font-medium mb-1">
-                    Search
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id="search"
-                      placeholder="Search by product name, description or category"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      <SearchIcon size={16} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium mb-1">
-                    Category
-                  </label>
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="minPrice" className="block text-sm font-medium mb-1">
-                      Min Price
-                    </label>
-                    <Input
-                      id="minPrice"
-                      type="number"
-                      placeholder="Min"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      min="0"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="maxPrice" className="block text-sm font-medium mb-1">
-                      Max Price
-                    </label>
-                    <Input
-                      id="maxPrice"
-                      type="number"
-                      placeholder="Max"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      min="0"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between">
-                <Button type="submit" className="w-full md:w-auto">
-                  Apply Filters
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={clearFilters}
-                  className="w-full md:w-auto mt-2 md:mt-0"
-                >
-                  Clear All
-                </Button>
-              </div>
-            </form>
+            <SearchForm 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              minPrice={minPrice}
+              setMinPrice={setMinPrice}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              categories={categories}
+              onSubmit={handleSearch}
+              onClearFilters={clearFilters}
+            />
           </div>
         )}
 
@@ -283,68 +394,42 @@ const Search = () => {
           <div className="flex flex-wrap gap-2 mb-6">
             <span className="text-sm font-medium py-1">Active filters:</span>
             {query && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                Search: {query}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeFilter("q")} 
-                />
-              </Badge>
+              <FilterBadge 
+                label="Search" 
+                value={query} 
+                onRemove={() => removeFilter("q")} 
+              />
             )}
             {categoryFilter && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                Category: {categoryFilter}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeFilter("category")} 
-                />
-              </Badge>
+              <FilterBadge 
+                label="Category" 
+                value={categoryFilter} 
+                onRemove={() => removeFilter("category")} 
+              />
             )}
             {searchParams.get("min_price") && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                Min Price: ${searchParams.get("min_price")}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeFilter("min_price")} 
-                />
-              </Badge>
+              <FilterBadge 
+                label="Min Price" 
+                value={`$${searchParams.get("min_price")}`} 
+                onRemove={() => removeFilter("min_price")} 
+              />
             )}
             {searchParams.get("max_price") && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                Max Price: ${searchParams.get("max_price")}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeFilter("max_price")} 
-                />
-              </Badge>
+              <FilterBadge 
+                label="Max Price" 
+                value={`$${searchParams.get("max_price")}`} 
+                onRemove={() => removeFilter("max_price")} 
+              />
             )}
           </div>
         )}
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+          <LoadingSpinner />
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                title={product.title}
-                price={product.price}
-                image={product.image_url || "/placeholder.svg"}
-              />
-            ))}
-          </div>
+          <ProductGrid products={products} />
         ) : (
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-semibold mb-2">No products found</h2>
-            <p className="text-gray-600 mb-6">
-              Try adjusting your search or filter criteria
-            </p>
-            <Button onClick={clearFilters}>View All Products</Button>
-          </div>
+          <EmptyResults onClearFilters={clearFilters} />
         )}
       </div>
     </div>

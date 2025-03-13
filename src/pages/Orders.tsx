@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,10 +51,102 @@ const statusColors: Record<OrderStatus, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
+// Memoized loading skeleton component
+const OrderSkeleton = memo(() => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-32 bg-gray-200 rounded"></div>
+        ))}
+      </div>
+    </div>
+  </div>
+));
+
+OrderSkeleton.displayName = "OrderSkeleton";
+
+// Memoized empty state component
+const EmptyOrders = memo(({ onBrowse }: { onBrowse: () => void }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>No Orders Yet</CardTitle>
+      <CardDescription>
+        You haven't placed any orders yet. Start shopping to see your order history here.
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button onClick={onBrowse}>Browse Products</Button>
+    </CardContent>
+  </Card>
+));
+
+EmptyOrders.displayName = "EmptyOrders";
+
+// Memoized order card component
+const OrderCard = memo(({ order }: { order: Order }) => (
+  <Card key={order.id}>
+    <CardHeader>
+      <div className="flex justify-between items-start">
+        <div>
+          <CardTitle>Order #{order.id.slice(0, 8)}</CardTitle>
+          <CardDescription>
+            Placed on {format(new Date(order.created_at), "PPP")}
+          </CardDescription>
+        </div>
+        <Badge className={statusColors[order.status]}>
+          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        </Badge>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {order.tracking_number && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Package className="h-4 w-4" />
+            <span>Tracking Number: {order.tracking_number}</span>
+            {order.estimated_delivery && (
+              <span className="ml-4">
+                Estimated Delivery:{" "}
+                {format(new Date(order.estimated_delivery), "PPP")}
+              </span>
+            )}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-medium mb-2">Shipping Address</h3>
+            <div className="text-sm text-gray-600">
+              <p>{order.shipping_address.fullName}</p>
+              <p>{order.shipping_address.address}</p>
+              <p>
+                {order.shipping_address.city}, {order.shipping_address.state}{" "}
+                {order.shipping_address.zipCode}
+              </p>
+              <p>{order.shipping_address.country}</p>
+            </div>
+          </div>
+          <div>
+            <h3 className="font-medium mb-2">Order Summary</h3>
+            <div className="text-sm text-gray-600">
+              <p>Total Amount: ${order.total_amount.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+));
+
+OrderCard.displayName = "OrderCard";
+
 const OrderHistory = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Optimize query settings for faster loading
   const { data: orders, isLoading } = useQuery({
     queryKey: ["orders", user?.id],
     queryFn: async () => {
@@ -71,97 +164,30 @@ const OrderHistory = () => {
       })) as Order[];
     },
     enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
+  const handleNavigateToShop = () => navigate("/");
+
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <OrderSkeleton />;
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Order History</h1>
-        <Button onClick={() => navigate("/")}>Continue Shopping</Button>
+        <Button onClick={handleNavigateToShop}>Continue Shopping</Button>
       </div>
 
       {!orders?.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Orders Yet</CardTitle>
-            <CardDescription>
-              You haven't placed any orders yet. Start shopping to see your order history here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/")}>Browse Products</Button>
-          </CardContent>
-        </Card>
+        <EmptyOrders onBrowse={handleNavigateToShop} />
       ) : (
         <div className="space-y-6">
           {orders.map((order) => (
-            <Card key={order.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>Order #{order.id.slice(0, 8)}</CardTitle>
-                    <CardDescription>
-                      Placed on {format(new Date(order.created_at), "PPP")}
-                    </CardDescription>
-                  </div>
-                  <Badge className={statusColors[order.status]}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {order.tracking_number && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Package className="h-4 w-4" />
-                      <span>Tracking Number: {order.tracking_number}</span>
-                      {order.estimated_delivery && (
-                        <span className="ml-4">
-                          Estimated Delivery:{" "}
-                          {format(new Date(order.estimated_delivery), "PPP")}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Shipping Address</h3>
-                      <div className="text-sm text-gray-600">
-                        <p>{order.shipping_address.fullName}</p>
-                        <p>{order.shipping_address.address}</p>
-                        <p>
-                          {order.shipping_address.city}, {order.shipping_address.state}{" "}
-                          {order.shipping_address.zipCode}
-                        </p>
-                        <p>{order.shipping_address.country}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Order Summary</h3>
-                      <div className="text-sm text-gray-600">
-                        <p>Total Amount: ${order.total_amount.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <OrderCard key={order.id} order={order} />
           ))}
         </div>
       )}
