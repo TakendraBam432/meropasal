@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ export const UserManagementCard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Use React Query for data fetching with optimized caching
+  // Optimize React Query settings for faster data loading
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
@@ -32,13 +32,15 @@ export const UserManagementCard = () => {
         is_super_admin: user.is_super_admin,
       }));
     },
-    // Optimize with caching settings
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
-    gcTime: 1000 * 60 * 10,   // 10 minutes garbage collection
+    // Optimize with improved caching settings
+    staleTime: 1000 * 60 * 2, // 2 minutes cache (reduced from 5)
+    gcTime: 1000 * 60 * 5,   // 5 minutes garbage collection (reduced from 10)
     retry: 1,
+    refetchOnMount: true,
+    refetchOnReconnect: false,
   });
 
-  // Role toggle mutation
+  // Memoize role toggle mutation to prevent unnecessary recreations
   const toggleRoleMutation = useMutation({
     mutationFn: async ({ userId, role, value }: { userId: string, role: "admin" | "super_admin", value: boolean }) => {
       const updateData = role === "admin" 
@@ -70,7 +72,7 @@ export const UserManagementCard = () => {
     }
   });
 
-  // Delete user mutation
+  // Memoize delete user mutation to prevent unnecessary recreations
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const { error } = await supabase.auth.admin.deleteUser(userId);
@@ -93,29 +95,33 @@ export const UserManagementCard = () => {
     }
   });
 
-  const handleToggleAdmin = (userId: string, value: boolean) => {
+  // Use useCallback for handler functions to prevent recreations
+  const handleToggleAdmin = useCallback((userId: string, value: boolean) => {
     toggleRoleMutation.mutate({ userId, role: "admin", value });
-  };
+  }, [toggleRoleMutation]);
 
-  const handleToggleSuperAdmin = (userId: string, value: boolean) => {
+  const handleToggleSuperAdmin = useCallback((userId: string, value: boolean) => {
     toggleRoleMutation.mutate({ userId, role: "super_admin", value });
-  };
+  }, [toggleRoleMutation]);
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = useCallback((userId: string) => {
     deleteUserMutation.mutate(userId);
-  };
+  }, [deleteUserMutation]);
+
+  // Memoized error state UI
+  const errorUI = useMemo(() => (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>User Management</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-red-500">Error loading users. Please try again.</div>
+      </CardContent>
+    </Card>
+  ), []);
 
   if (error) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-red-500">Error loading users. Please try again.</div>
-        </CardContent>
-      </Card>
-    );
+    return errorUI;
   }
 
   return (

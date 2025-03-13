@@ -8,8 +8,8 @@ export const ProtectedRoute = memo(({ children }: { children: React.ReactNode })
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-
-  // Use debounced loading detection to avoid flash of loading state
+  
+  // Use faster debounced loading detection with shorter timeout
   useEffect(() => {
     let timeoutId: number | undefined;
     
@@ -21,10 +21,10 @@ export const ProtectedRoute = memo(({ children }: { children: React.ReactNode })
         setIsAuthorized(true);
       }
     } else if (isAuthorized === null) {
-      // Set a timeout to show loading only if it takes more than 100ms
+      // Shorter timeout (50ms instead of 100ms) for faster loading detection
       timeoutId = window.setTimeout(() => {
         if (loading) setIsAuthorized(null);
-      }, 100);
+      }, 50);
     }
     
     return () => {

@@ -1,9 +1,14 @@
 
-import { memo } from 'react';
+import { memo, Suspense } from 'react';
 import { UserManagementCard } from "./users";
+import { Loading } from "@/components/ui/loading";
 
 const UserManagement = memo(() => {
-  return <UserManagementCard />;
+  return (
+    <Suspense fallback={<Loading size="lg" />}>
+      <UserManagementCard />
+    </Suspense>
+  );
 });
 
 UserManagement.displayName = "UserManagement";

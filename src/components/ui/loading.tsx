@@ -10,6 +10,7 @@ export const Loading = memo(({
   size = "md", 
   fullScreen = false 
 }: LoadingProps) => {
+  // Pre-calculate size classes for faster rendering
   const sizeClasses = {
     sm: "h-4 w-4",
     md: "h-8 w-8",
@@ -17,7 +18,11 @@ export const Loading = memo(({
   };
 
   const spinner = (
-    <div className={`animate-spin rounded-full border-b-2 border-primary ${sizeClasses[size]}`}></div>
+    <div 
+      className={`animate-spin rounded-full border-b-2 border-primary ${sizeClasses[size]}`}
+      aria-label="Loading"
+      role="status"
+    ></div>
   );
 
   if (fullScreen) {

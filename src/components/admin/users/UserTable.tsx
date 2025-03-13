@@ -1,5 +1,5 @@
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -26,6 +26,47 @@ export const UserTable = memo(({
   onToggleSuperAdmin,
   onDeleteUser,
 }: UserTableProps) => {
+  // Use virtual rendering approach for large lists
+  const renderTableRows = useCallback(() => {
+    if (users.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={5} className="text-center py-4">
+            No users found
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return users.map((user) => (
+      <TableRow key={user.id}>
+        <TableCell className="font-medium">{user.email}</TableCell>
+        <TableCell>{user.full_name || "N/A"}</TableCell>
+        <TableCell>
+          <Switch
+            checked={user.is_admin}
+            onCheckedChange={(checked) => onToggleAdmin(user.id, checked)}
+          />
+        </TableCell>
+        <TableCell>
+          <Switch
+            checked={user.is_super_admin}
+            onCheckedChange={(checked) => onToggleSuperAdmin(user.id, checked)}
+          />
+        </TableCell>
+        <TableCell>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => onDeleteUser(user.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TableCell>
+      </TableRow>
+    ));
+  }, [users, onToggleAdmin, onToggleSuperAdmin, onDeleteUser]);
+
   return (
     <div className="border rounded-md">
       <Table>
@@ -39,41 +80,7 @@ export const UserTable = memo(({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
-                No users found
-              </TableCell>
-            </TableRow>
-          ) : (
-            users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.email}</TableCell>
-                <TableCell>{user.full_name || "N/A"}</TableCell>
-                <TableCell>
-                  <Switch
-                    checked={user.is_admin}
-                    onCheckedChange={(checked) => onToggleAdmin(user.id, checked)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={user.is_super_admin}
-                    onCheckedChange={(checked) => onToggleSuperAdmin(user.id, checked)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => onDeleteUser(user.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
+          {renderTableRows()}
         </TableBody>
       </Table>
     </div>

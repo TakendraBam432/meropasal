@@ -1,4 +1,5 @@
 
+import { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
@@ -8,12 +9,12 @@ interface ProductCardProps {
   image: string;
 }
 
-const ProductCard = ({ id, title, price, image }: ProductCardProps) => {
+const ProductCard = memo(({ id, title, price, image }: ProductCardProps) => {
   const navigate = useNavigate();
 
-  const viewProductDetails = () => {
+  const viewProductDetails = useCallback(() => {
     navigate(`/product/${id}`);
-  };
+  }, [navigate, id]);
 
   return (
     <div 
@@ -28,6 +29,8 @@ const ProductCard = ({ id, title, price, image }: ProductCardProps) => {
           loading="eager"
           fetchPriority="high"
           decoding="async"
+          width="400"
+          height="400"
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200">
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 translate-y-0 transition-transform duration-200">
@@ -45,6 +48,8 @@ const ProductCard = ({ id, title, price, image }: ProductCardProps) => {
       </div>
     </div>
   );
-};
+});
+
+ProductCard.displayName = "ProductCard";
 
 export default ProductCard;
