@@ -1,6 +1,6 @@
 ## 👨‍💻 OWNER INFO
 
-## I'M TAKENDRA BAM 16yrs old college student from NEPAL
+## I'M TAKENDRA BAM AAA college student from NEPAL
 Contributions are welcome!  
 Check out the repository or connect through social platforms:
 
